@@ -1,0 +1,13 @@
+1. DE: ETL Pipeline
+    a. EXTRACT: Use crawl4ai for crawling a website's URLs.
+        a. Crawl4ai built markdown-in-json files 
+        b. Crawl4ai used ayncio and playwright browser for crawling.
+        c. 🏁 Crawl finished in 1421.77 seconds! Successfully scraped 4783 new pages.
+    b. TRANSFORM: Chunking using langchain-text-splitters 
+        1.  Total chunks: 35601. Starting local vector generation & ingestion...
+    c. TRANSFORM: Vectorization using Embedding Model from Hugging Face tool called sentence-transformers: BAAI/bge-small-en-v1.5 - Dimensions = 384
+    d. LOAD: Ingestion in Vector Database: Qdrant
+        1. Cluster name: self-correcting-rag-with-web-fallback
+        2. Connected to Qdrant Cloud/Server.
+        3. 📦 Creating 384-dimensional Qdrant collection: 'university_knowledge_base'...
+2. Orchestration (Retrieval & Generation)
