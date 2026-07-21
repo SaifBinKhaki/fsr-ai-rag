@@ -5,3 +5,12 @@ services:
       - '5678:5678'
     volumes:
       - ~/.n8n:/home/node/.n8n
+  api:
+    build:
+      context: ./api
+    ports:
+      - '8000:8000'
+    volumes:
+      - ./api:/api
+    env_file:
+      - .env

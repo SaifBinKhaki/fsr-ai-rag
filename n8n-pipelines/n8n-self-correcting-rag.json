@@ -1,0 +1,1008 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "mode": "load",
+        "qdrantCollection": {
+          "__rl": true,
+          "value": "university_knowledge_base",
+          "mode": "list",
+          "cachedResultName": "university_knowledge_base"
+        },
+        "prompt": "={{ $('Webhook').item.json.body.message }}",
+        "options": {
+          "contentPayloadKey": "text"
+        }
+      },
+      "id": "cb51815e-9339-4c05-a194-7b126f1785f5",
+      "name": "Vector Retrieval",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1.1,
+      "position": [-2336, 384],
+      "credentials": {
+        "qdrantApi": {
+          "id": "nIhmyhkWhR3PPx2b",
+          "name": "Qdrant account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=User Question:\n{{ $('Webhook').item.json.body.message }}\n\nRetrieved Document Chunks:\n{{ $json.document ? JSON.stringify($json.document) : JSON.stringify($json) }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are an expert evaluator for a university RAG system.\n\nYour task is to analyze the retrieved document chunks and the user's question.\n\nReturn ONLY a valid JSON object:\n\n{\n  \"is_relevant\": boolean,\n  \"confidence_score\": float (0.0 to 1.0),\n  \"reasoning\": \"Briefly explain why.\"\n}\n\nRules:\n- If the document chunks contain sufficient information to answer the question, is_relevant = true. It should not be based on assumptions that the information would exist somewhere. It should be marked true only if the exact answer of the questions exists in the chunk. It doesn't matter if the chunk is relevant or not, if the answer to the question is missing, is_relevant = false.\n- If the chunks are missing information or talk about a different topic, is_relevant = false.\n- Confidence > 0.75 is required for relevance."
+            }
+          ]
+        }
+      },
+      "id": "dd06b6af-114f-4d56-99be-c3a823e708f0",
+      "name": "Relevance Judge",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [-1536, 256]
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"is_relevant\": true,\n  \"confidence_score\": 0.9,\n  \"reasoning\": \"The chunks directly answer the question.\"\n}"
+      },
+      "id": "3c5b2089-944f-41a9-b39f-924c91fa2df2",
+      "name": "JSON Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [-1392, 480]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "relevance-condition",
+              "leftValue": "={{ $json.output.is_relevant }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "74d51e5c-0c50-4c2b-9fb3-853423c6feb3",
+      "name": "If Relevant",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [-288, 256]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Answer the user's question using ONLY the retrieved context below.\n\nUser Question:\n{{ $('Webhook').item.json.body.message }}\n\nRetrieved Context:\n{{ $json.output.reasoning }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a helpful university assistant. Provide a clear, accurate answer based strictly on the provided context. If the context includes citations, reference them."
+            }
+          ]
+        }
+      },
+      "id": "30a14636-c395-4ad9-89a1-c50651c1417b",
+      "name": "Synthesis (Answer from Chunks)",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [384, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.tavily.com/search",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n    \"query\": \"{{ $('Webhook').item.json.body.message.replaceAll(\"\\\"\", \"\") }}. Answer this question from the context of the university of BTU Cottbus-Senftenberg, Brandenburgisches Techniche Universitat Cottbus-Senftenberg, in Germany?\",\n    \"search_depth\": \"advanced\"\n}",
+        "options": {}
+      },
+      "id": "e61b6a47-a14f-46ff-a636-e3060f47ed54",
+      "name": "Fallback Search",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [160, 416],
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "YkyS5PtsvnUrBc5w",
+          "name": "Bearer Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "BAAI/bge-small-en-v1.5",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsHuggingFaceInference",
+      "typeVersion": 1,
+      "position": [-2256, 608],
+      "id": "a5854afc-f914-4f25-aeb9-62d72c084575",
+      "name": "Embeddings HuggingFace Inference",
+      "credentials": {
+        "huggingFaceApi": {
+          "id": "tUba92Wk3xTcsOWl",
+          "name": "Hugging Face account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sortFieldsUi": {
+          "sortField": [
+            {
+              "fieldName": "output.confidence_score",
+              "order": "descending"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.sort",
+      "typeVersion": 1,
+      "position": [-736, 256],
+      "id": "b63674b0-b337-41c7-a9ac-9dbfa5d9a694",
+      "name": "Sort by confidence"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [-512, 256],
+      "id": "17c16dee-f9a4-46c7-91ce-ecaf2560c450",
+      "name": "Take the top 1"
+    },
+    {
+      "parameters": {
+        "model": "deepseek/deepseek-v4-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [-1520, 480],
+      "id": "3881e58a-2869-4b5f-a8bf-5d74ba7423a1",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "srtnXK7tgXef6U2R",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "deepseek/deepseek-v4-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [464, 224],
+      "id": "e0607f72-0839-40ff-a065-59da3577e195",
+      "name": "OpenRouter Chat Model1",
+      "credentials": {
+        "openRouterApi": {
+          "id": "srtnXK7tgXef6U2R",
+          "name": "OpenRouter account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "results",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [448, 416],
+      "id": "9eda6c49-d87f-4de9-a675-ee15931e5ea1",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3e1cf743-611d-4114-b249-0fa798190041",
+              "name": "score",
+              "value": "={{ $json.score }}",
+              "type": "number"
+            },
+            {
+              "id": "c790f1bb-80e2-4dd5-9d1a-7e3582c1caab",
+              "name": "document.pageContent",
+              "value": "={{ $json.content }}",
+              "type": "string"
+            },
+            {
+              "id": "a55a560f-1a50-4710-afff-0fe6779f0b5b",
+              "name": "document.metadata.title",
+              "value": "={{ $json.title }}",
+              "type": "string"
+            },
+            {
+              "id": "b7289adf-2989-4a5f-980b-8e7134fcdf23",
+              "name": "document.metadata.url",
+              "value": "={{ $json.url }}",
+              "type": "string"
+            },
+            {
+              "id": "6dd1caaf-8754-4cbd-bc41-abb275c76573",
+              "name": "document.metadata.webFallback",
+              "value": true,
+              "type": "boolean"
+            }
+          ]
+        },
+        "options": {
+          "ignoreConversionErrors": true,
+          "dotNotation": true
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [736, 544],
+      "id": "8cd82847-a98b-4c04-a571-ca18c80b5e00",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-1760, 384],
+      "id": "77de5d09-4bb6-4b34-bbd1-aa9c6fe66ed3",
+      "name": "Combine"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4fc661ac-a8e0-43fd-a2b2-02788eea51c6",
+              "name": "output.webFallback",
+              "value": "={{ $('Combine').item.json.document.metadata.webFallback }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "includeOtherFields": "={{ true }}",
+        "options": {
+          "dotNotation": true
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-960, 256],
+      "id": "447e352e-149f-418c-be99-98be945204c9",
+      "name": "Readding web_fallback Key"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6f7a1ce5-bb97-4906-8a59-9d265c0c9500",
+              "name": "document.metadata.webFallback",
+              "value": false,
+              "type": "boolean"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {
+          "dotNotation": true
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-1984, 384],
+      "id": "f9441cfe-574e-4bf8-96c2-04a81dd7bc1c",
+      "name": "Adding Fallback Key"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7bbcccee-3498-4b08-b8d7-1e5b9fcb23ba",
+              "leftValue": "={{ $json.output.webFallback }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [-64, 320],
+      "id": "e3332570-cb78-48f9-be13-9d59b5c9cce9",
+      "name": "Again Web Fallback?"
+    },
+    {
+      "parameters": {
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "workflow_logs",
+          "mode": "list",
+          "cachedResultName": "workflow_logs"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "is_web_fallback_used": "={{ $('If Relevant').item.json.output.webFallback }}",
+            "highest_relevance_score": "={{ $('If Relevant').item.json.output.confidence_score }}",
+            "latency_ms": "={{ $json.latency_ms }}",
+            "final_response": "={{ $json.text }}",
+            "user_query": "={{ $('Webhook').item.json.body.message }}",
+            "embeddings_model": "BAAI/bge-small-en-v1.5",
+            "llm_model": "deepseek/deepseek-v4-flash",
+            "id": "={{ $execution.id }}",
+            "workflow_name": "={{ $workflow.name }}",
+            "created_at": "={{ $now }}"
+          },
+          "matchingColumns": ["id"],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": true,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "workflow_name",
+              "displayName": "workflow_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "user_query",
+              "displayName": "user_query",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "llm_model",
+              "displayName": "llm_model",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "embeddings_model",
+              "displayName": "embeddings_model",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "highest_relevance_score",
+              "displayName": "highest_relevance_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "is_web_fallback_used",
+              "displayName": "is_web_fallback_used",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "final_response",
+              "displayName": "final_response",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "latency_ms",
+              "displayName": "latency_ms",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "error_log",
+              "displayName": "error_log",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [960, 112],
+      "id": "3f611dc3-bbf0-484c-8bae-20ac8bdc0657",
+      "name": "Insert rows in a table",
+      "credentials": {
+        "postgres": {
+          "id": "wylUWDlC9G3TcWij",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const results = $input.all().map(item => {\n  return {\n    json: {\n      ...item.json, // Keep existing data\n      startTime: Date.now(),\n    }\n  };\n});\n\n// 3. Return the array of objects\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-2560, 384],
+      "id": "d6bd1718-7deb-43f1-9e5e-9740cbf9a7f9",
+      "name": "Record Start Time"
+    },
+    {
+      "parameters": {
+        "jsCode": "// At the END node:\nconst latency = Date.now() - $('Record Start Time').first().json.startTime;\n\n// 2. Prepare the data you want to pass to the next node\n// or simply return the data you've processed.\nconst results = $input.all().map(item => {\n  return {\n    json: {\n      ...item.json, // Keep existing data\n      latency_ms: latency,\n      status: \"completed\"\n    }\n  };\n});\n\n// 3. Return the array of objects\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [736, 112],
+      "id": "c681ed05-c025-496c-a82f-b8a941e99453",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c19ff5b7-1651-47ea-bcd4-6a0e38a6e983",
+              "name": "output.is_relevant",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "692044f2-0b99-4e04-965c-fa783858ed70",
+              "name": "output.confidence_score",
+              "value": 0,
+              "type": "number"
+            },
+            {
+              "id": "2047ceac-4f1d-4c89-b470-5ce5135f5aeb",
+              "name": "output.reasoning",
+              "value": "=No specific answer could be found from the database or the web, the closest context we could find is: {{ $json.output.reasoning }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [160, 176],
+      "id": "097e273b-a2e7-4500-92a5-ee183e400c5e",
+      "name": "Update Context to Not Found"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ce7b5ba7-dab0-44d2-b504-e16f1bc5d3f8",
+              "name": "text",
+              "value": "={{ $('Code in JavaScript').item.json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1184, 112],
+      "id": "fdcccfb0-64e2-43b9-9d06-7ea8e23c6585",
+      "name": "Return Chat Response"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "98a3d97b-ec46-41d7-9d86-04a7b967fa03",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [-2784, 384],
+      "id": "a0b66dc3-1a78-4dcc-85ef-5733e4c2dd6c",
+      "name": "Webhook",
+      "webhookId": "98a3d97b-ec46-41d7-9d86-04a7b967fa03"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1d220f67-dec7-47ae-a962-1644ee1beb51",
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "e2dc2400-5122-49a7-a470-b2c93f8299d6",
+              "leftValue": "={{ $json.output.is_relevant }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "exists",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "8df8b128-06b7-42be-964e-6f7ade9bde58",
+              "leftValue": "={{ $json.output.confidence_score }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "e90537d3-28e1-48dc-8000-fa1a69158be3",
+              "leftValue": "={{ $json.output.reasoning }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [-1184, 256],
+      "id": "21feec34-29e2-45e6-8912-709de3ac0ce4",
+      "name": "Filter invalid rows"
+    }
+  ],
+  "connections": {
+    "Vector Retrieval": {
+      "main": [
+        [
+          {
+            "node": "Adding Fallback Key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Relevance Judge": {
+      "main": [
+        [
+          {
+            "node": "Filter invalid rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JSON Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Relevance Judge",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Relevant": {
+      "main": [
+        [
+          {
+            "node": "Synthesis (Answer from Chunks)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Again Web Fallback?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Synthesis (Answer from Chunks)": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fallback Search": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings HuggingFace Inference": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Vector Retrieval",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sort by confidence": {
+      "main": [
+        [
+          {
+            "node": "Take the top 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Take the top 1": {
+      "main": [
+        [
+          {
+            "node": "If Relevant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Relevance Judge",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Synthesis (Answer from Chunks)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Combine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine": {
+      "main": [
+        [
+          {
+            "node": "Relevance Judge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Readding web_fallback Key": {
+      "main": [
+        [
+          {
+            "node": "Sort by confidence",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adding Fallback Key": {
+      "main": [
+        [
+          {
+            "node": "Combine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Again Web Fallback?": {
+      "main": [
+        [
+          {
+            "node": "Update Context to Not Found",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fallback Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert rows in a table": {
+      "main": [
+        [
+          {
+            "node": "Return Chat Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Record Start Time": {
+      "main": [
+        [
+          {
+            "node": "Vector Retrieval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Insert rows in a table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Context to Not Found": {
+      "main": [
+        [
+          {
+            "node": "Synthesis (Answer from Chunks)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Record Start Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter invalid rows": {
+      "main": [
+        [
+          {
+            "node": "Readding web_fallback Key",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {
+    "Synthesis (Answer from Chunks)": [
+      {
+        "text": "Based on the retrieved context, a student gets 6 credits for studying \"Modelling of Perception and action.\""
+      }
+    ],
+    "Fallback Search": [
+      {
+        "query": "How many credits does a student get for studying Modelling of Perception and action?. Answer this question from the context of the university of BTU Cottbus-Senftenberg, Brandenburgisches Techniche Universitat Cottbus-Senftenberg, in Germany?",
+        "follow_up_questions": null,
+        "answer": null,
+        "images": [],
+        "results": [
+          {
+            "url": "https://www-docs.b-tu.de/studierende/public/modulhandbuch/master/Artificial_Intelligence/SoSe_2026/Modulhandbuch_SS2026_88_ARI_PO2022.pdf",
+            "title": "Modulhandbuch für den Studiengang Artificial Intelligence ...",
+            "content": "Degree Module Number Module Form Master of Science 14023 Compulsory elective Modul Title Modeling of Perception and Action Modellierung von Wahrnehmung und Handlung Department Faculty 1 - Mathematics, Computer Science, Physics, Electrical Engineering and Information Technology Responsible Staff Member Prof. Dr.-Ing. habil. Glasauer, Stefan Language of Teaching / Examination English Duration 1 semester Frequency of Offer Every summer semester Credits 6 Learning Outcome The students know the subject and the methods of analysis, modelling and simulation of perception and action processes at different levels of abstraction. They have knowledge of probabilistic models and the mathematical modelling of questions in cognitive neuroscience and can understand and apply algorithms and solution [...] 68 13838 Information Retrieval 70 Stand: 17. März 2026 Seite 1 von 164 Brandenburgische Technische Universität Cottbus - Senftenberg 13839 Advanced Database Models 72 13840 Data Warehouses 74 13841 Speech Processing 76 13842 Virtual Reality and Agents 78 13845 Multimedia Retrieval 80 13889 Stochastic Processes 82 13908 Experimental Techniques in Physics Supported with Artificial Intelligence / Machine Learning 84 13912 Coding Theory 86 13949 Differential Geometry 88 13978 Bioinformatics: Artificial Intelligence and Algorithmic Approaches 90 14023 Modeling of Perception and Action 92 14085 Graph Theory 94 14186 Image Processing and Computer Vision 97 14414 Data Analytics and Process Modelling 99 Learning and Reasoning 11847 Neural Networks and Learning Theory 101 12472 Einführung in die [...] Contents • Introduction to modelling software • Elementary principles of probability theory • Examples of experimental analysis of perceptual and action processes - Multisensory perception - Context dependence of perceptual processes - Action control • Quantitative modelling of perception, decision-making and action processes - Sensory systems - Central processing of sensory impressions - Decision-making and action control Recommended Prerequisites Knowledge of the topics of the modules • 11112 Mathematik IT-1 (Diskrete Mathematik) • 11113 Mathematik IT-2 (Lineare Algebra) • 11213 Mathematik IT-3 (Analysis) • 11756 Algorithmen und Datenstrukturen Mandatory Prerequisites none Stand: 17. März 2026 Seite 92 von 164 Brandenburgische Technische Universität Cottbus - Senftenberg Forms of",
+            "score": 0.79561085,
+            "raw_content": null
+          },
+          {
+            "url": "https://fsr-it.de/en/freshman",
+            "title": "Freshman-Guide - Board of IT Students - BTU Cottbus- ...",
+            "content": "## Timetable for the semester\n\nAs already mentioned, there is a table in the study and examination regulations that shows the distribution of modules to the semesters. In principle, this distribution is not binding or mandatory. However, it is advisable to adhere to it, as certain contents are a prerequisite or at least helpful for subsequent modules. It is recommended to work on around 30 credits in each semester.\n\nThere are mainly compulsory modules in the bachelor's degree, which are assigned to a semester in the curriculum. There are also some elective modules from which you can choose. [...] ### Structure of the study programme\n\nFor our bachelor's study programme, a total of 180 credit points (CP) must be achieved within six semesters and for our master's courses of study, a total of 120 credit points (CP) must be achieved within four semesters. The individual modules are assigned to module areas and the study regulations stipulate how many credit points must be achieved in which module area.\n\n#### Application area\n\nThere is an application area in the course of study \"Computer Science\", which you can choose yourself. The following areas are available to you: \"Mathematics\", \"Physics\", \"Mechanical Engineering / Electrical Engineering\", \"Economics\" and \"Civil Engineering\".\n\n#### Interdisciplinary study and FÜS catalogue [...] #### Credit points\n\nCredit points define the workload for the study and the individual modules. A credit point corresponds to an assumed workload of 30 hours. Unfortunately, there are many different abbreviations and spellings for credit points, so they are sometimes called credit points or ECTS points and often abbreviations such as LP, CP or KP are used, which all mean the same thing.\n\n#### Teaching events\n\nA teaching event is a physical event with a place and date. In your studies, for example, there are lectures, exercises, seminars or practicals.\n\n#### Examination and study regulations",
+            "score": 0.6301622,
+            "raw_content": null
+          },
+          {
+            "url": "https://www.youtube.com/watch?v=6xkmbEOGZZg",
+            "title": "MICRO- AND NANOELECTRONICS | BTU COTTBUS ...",
+            "content": "Okay. If you want to apply earlier also the uni uh uni assist application will be almost same. You can also apply by looking at our other videos. Then tuition fees is none. Combined degree program is also none and joint degree program is also not possible. Here in the description and content you can just see what how the uh course is structured and other things. But we will get the most or major information in course details. So here in the course details you can just see this degree program spans for four semesters. So that will be for 120 ECTS or credit points. And somebody was also asking credit points and ECTS. Based on this information only I make one credit point is equal to one ECTS because it's uh either way same. Uh during the first semester introductory module uh align various [...] studies. So in general studies try to take open elective which are like uh management related or any which is not core related technology some other way around. So that it would be also beneficial for you. So in the research project you need to do if there is research project then for sure you don't have mandatory internship because either you will have research project or either you will have mandatory internship. Then at last after counting all these we will count up to 90 and the lef over 30 credit points would be your master thesis. This is how the course is structured. If you need more information then you can also visit this page. This page we will visit and look for the module handbook in first part of application video also. Then international elements we have international guest [...] the first semester introductory module uh align various level of prior knowledge. physics uh learn about electronics, electrical engineering learned about uh solid state physics and quantum mechanics and these are the things. Here you can just see the complete curriculum. So at first you will do the mand mandatory fundamental which are six credit points introduction to microwave electronics or physics or modern devices based on your interest you will do. Then mandatory electives you will do 66 credits which will be on technology and devices for minimum 12 credits and circuit design of 12 credits application level of 12 credits. These are the uh three 12 credits sections courses that you need to fulfill. Then you will do a general studies. So in general studies try to take open elective",
+            "score": 0.48074743,
+            "raw_content": null
+          },
+          {
+            "url": "https://www.mastersportal.com/universities/200/the-brandenburg-university-of-technology-cottbus-senftenberg.html",
+            "title": "The Brandenburg University of Technology Cottbus",
+            "content": "37,845  UAH / year\n\n  Tuition unknown\n\n  2 years\n\n  The Brandenburg University of Technology Cottbus - Senftenberg Cottbus, Germany\n\n  37,845  UAH / year\n\n  37,845  UAH / year\n\n  Tuition unknown\n\n  2 years\n ### Transformation Studies\n\n  M.A. / Full-time, Part-time / On campus\n\n  37,845  UAH / year\n\n  37,845  UAH / year\n\n  Tuition unknown\n\n  2 years\n\n  The Brandenburg University of Technology Cottbus - Senftenberg Cottbus, Germany\n\n  37,845  UAH / year\n\n  37,845  UAH / year\n\n  Tuition unknown\n\n  2 years\n ### Urban Design and Sustainable Revitalization\n\n  M.Sc. / Full-time / On campus\n\n  34,599  UAH / year\n\n  34,599  UAH / year\n\n  Tuition unknown\n\n  2 years\n\n  The Brandenburg University of Technology Cottbus - Senftenberg Cottbus, Germany\n\n  34,599  UAH / year\n\n  34,599  UAH / year [...] M.A. / Full-time / Online, On campus, Blended\n\n  32,671  UAH / year\n\n  32,671  UAH / year\n\n  Tuition unknown\n\n  2 years\n\n  The Brandenburg University of Technology Cottbus - Senftenberg Cottbus, Germany\n\n  32,671  UAH / year\n\n  32,671  UAH / year\n\n  Tuition unknown\n\n  2 years\n\nView more programmes\n\n ### Artificial Intelligence\n\n  M.Sc. / Full-time / On campus\n\n  37,845  UAH / year\n\n  37,845  UAH / year\n\n  Tuition unknown\n\n  2 years\n\n  The Brandenburg University of Technology Cottbus - Senftenberg Cottbus, Germany\n\n  37,845  UAH / year\n\n  37,845  UAH / year\n\n  Tuition unknown\n\n  2 years\n ### Cyber Security\n\n  M.Sc. / Full-time / On campus\n\n  37,845  UAH / year\n\n  37,845  UAH / year\n\n  Tuition unknown\n\n  2 years [...] M.Sc. / Full-time / On campus\n\n  18,923  UAH / year\n\n  18,923  UAH / year\n\n  Tuition unknown\n\n  2 years\n\n  The Brandenburg University of Technology Cottbus - Senftenberg Cottbus, Germany\n\n  18,923  UAH / year\n\n  18,923  UAH / year\n\n  Tuition unknown\n\n  2 years\n\nView more programmes\n\n ### Environmental and Resource Management\n\n  M.Sc. / Full-time / On campus\n\n  37,845  UAH / year\n\n  37,845  UAH / year\n\n  Tuition unknown\n\n  2 years\n\n  The Brandenburg University of Technology Cottbus - Senftenberg Cottbus, Germany\n\n  37,845  UAH / year\n\n  37,845  UAH / year\n\n  Tuition unknown\n\n  2 years\n ### Euro Hydroinformatics and Water Management\n\n  M.Sc. / Full-time / On campus\n\n  37,845  UAH / year\n\n  37,845  UAH / year\n\n  Tuition unknown\n\n  2 years",
+            "score": 0.44999737,
+            "raw_content": null
+          },
+          {
+            "url": "https://www.ru.nl/en/perception-action-and-decision-making",
+            "title": "Perception, Action and Decision-making",
+            "content": "Compulsory courses\n\nP1\n\nP2\n\nP3\n\nP4\n\n## Track Courses - Choose 18 EC\n\nTotal number EC: 18 EC\n\nAll course information\n\n6 EC\n\n1. P1\n2. P2\n\nAll course information\n\n6 EC\n\n1. P1\n2. P2\n\nAll course information\n\n6 EC\n\n1. P2\n2. P3\n\nAll course information\n\n6 EC\n\n1. P3\n2. P4\n\nAll course information\n\n6 EC\n\n1. P3\n2. P4\n\nAll course information\n\n6 EC\n\n1. P3\n2. P4\n\nElective courses\n\nP1\n\nP2\n\nP3\n\nP4\n\nProgramme elective - Choose any CNS track course\n\n6 EC\n\n1. P1\n2. P2\n3. P3\n4. P4\n\nYou may choose another track course from your own track, OR choose a course from the other tracks.\n\nRadboud University logo",
+            "score": 0.3462102,
+            "raw_content": null
+          }
+        ],
+        "response_time": 0,
+        "request_id": "2d702617-ed98-446c-b3a6-a3562011d78e"
+      }
+    ],
+    "Webhook": [
+      {
+        "headers": {
+          "host": "n8n-pipeline-production.up.railway.app",
+          "user-agent": "curl/8.7.1",
+          "content-length": "115",
+          "accept": "*/*",
+          "content-type": "application/json",
+          "x-forwarded-for": "92.211.2.81, 152.233.13.166",
+          "x-forwarded-host": "n8n-pipeline-production.up.railway.app",
+          "x-forwarded-proto": "https",
+          "x-railway-edge": "ams1",
+          "x-railway-request-id": "7kum5hJiSeewhd8kn6XIxQ",
+          "x-real-ip": "92.211.2.81",
+          "x-request-start": "1784177559546",
+          "accept-encoding": "gzip"
+        },
+        "params": {},
+        "query": {},
+        "body": {
+          "message": "How many credit points students will get on completing course of Modelling of Perception and action."
+        },
+        "webhookUrl": "https://n8n-pipeline-production.up.railway.app/webhook-test/98a3d97b-ec46-41d7-9d86-04a7b967fa03",
+        "executionMode": "test"
+      }
+    ]
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8076c1c0714b0f3e5774bd9585494e4f8ddfac6d1e4bf5cd8ff30f3f7be925d5"
+  }
+}

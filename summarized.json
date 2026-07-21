@@ -1,0 +1,149 @@
+{
+  "title": "Self-Correcting RAG with Web Fallback",
+  "tagline": "A university Q&A system that knows when it doesn't know — and falls back to live web search instead of hallucinating.",
+  "description": "An end-to-end AI system that answers questions about BTU Cottbus-Senftenberg from its own module catalog. A Python ETL pipeline crawls ~4,800 university pages, chunks and embeds them locally, and syncs them into Qdrant. An n8n orchestration layer retrieves, uses an LLM to judge the relevance of its own retrieval, and self-corrects: grounded answers when the knowledge base is confident, a live Tavily web search when it isn't. Every query is logged to PostgreSQL for full observability.",
+  "author": "Saif Ullah Bin Khaki",
+  "category": "AI Engineering / Machine Learning",
+  "subcategory": "Retrieval-Augmented Generation (RAG) + MLOps",
+  "status": "Deployed",
+  "highlights": [
+    "Self-correcting RAG: an LLM relevance judge (strict, confidence > 0.75) decides whether the retrieved chunks actually answer the question before generating.",
+    "Web fallback via Tavily when the internal knowledge base comes up short — no hallucinated answers.",
+    "Zero-cost local embeddings using BAAI/bge-small-en-v1.5 (384-dim) instead of a paid embedding API.",
+    "Reconciling Qdrant sync with content-hash change detection and a safety guard that refuses to wipe the KB on a failed scrape.",
+    "Anti-bot-resilient crawler: realistic UA, batched concurrency, jittered starts, retry pass, optional residential proxies.",
+    "Runs on a 1 GB Railway box via deliberate memory engineering (lazy torch import, capped browser tabs).",
+    "Full observability: every query, latency, route, and confidence score logged to PostgreSQL.",
+    "Weekly self-refresh via an n8n cron trigger hitting the ETL API."
+  ],
+  "metrics": {
+    "source_urls": 4786,
+    "pages_scraped": 4783,
+    "chunks_generated": 35601,
+    "embedding_dimensions": 384,
+    "full_crawl_time_seconds": 1421,
+    "relevance_confidence_threshold": 0.75
+  },
+  "architecture": {
+    "etl": "Python FastAPI service (Extract -> Transform -> Load) crawling BTU pages into Qdrant Cloud.",
+    "orchestration": "n8n graph performing retrieval, LLM relevance judging, routing, synthesis, and web fallback.",
+    "observability": "PostgreSQL workflow_logs table capturing every interaction and error.",
+    "contract": "ETL and orchestration are decoupled — they communicate only through Qdrant and HTTP endpoints."
+  },
+  "stack": {
+    "languages": ["Python", "JavaScript (n8n expressions)", "SQL"],
+    "crawling": "Crawl4AI (asyncio + Playwright/Chromium)",
+    "chunking": "LangChain RecursiveCharacterTextSplitter (1000 chars / 200 overlap)",
+    "embeddings": "sentence-transformers BAAI/bge-small-en-v1.5 (384-dim, local)",
+    "vector_db": "Qdrant Cloud (cosine similarity)",
+    "api": "FastAPI + Uvicorn (bearer-token auth)",
+    "orchestration": "n8n",
+    "llm": "deepseek/deepseek-v4-flash via OpenRouter",
+    "query_embeddings": "HuggingFace Inference API",
+    "web_search": "Tavily Search API",
+    "database": "PostgreSQL",
+    "packaging": "Docker + docker-compose",
+    "hosting": "Railway (ETL API), Qdrant Cloud (vectors)"
+  },
+  "tools": [
+    "Crawl4AI",
+    "Playwright",
+    "LangChain",
+    "sentence-transformers",
+    "Qdrant",
+    "FastAPI",
+    "Uvicorn",
+    "n8n",
+    "OpenRouter",
+    "DeepSeek",
+    "HuggingFace Inference",
+    "Tavily",
+    "PostgreSQL",
+    "Docker",
+    "Railway"
+  ],
+  "tags": [
+    "RAG",
+    "Self-Correcting RAG",
+    "Agentic RAG",
+    "Vector Search",
+    "Qdrant",
+    "Web Fallback",
+    "ETL Pipeline",
+    "Web Scraping",
+    "Crawl4AI",
+    "Embeddings",
+    "n8n",
+    "LLM Orchestration",
+    "MLOps",
+    "Observability",
+    "FastAPI",
+    "Docker",
+    "Local Embeddings",
+    "AI Engineering"
+  ],
+  "etl_steps": [
+    "EXTRACT: Crawl ~4,786 BTU module URLs with Crawl4AI into clean markdown-in-JSON, following nested timetable event sub-pages one level deep.",
+    "TRANSFORM: Chunk the markdown (1000/200) and embed locally with bge-small-en-v1.5 into 384-dim vectors.",
+    "LOAD: Reconciling sync into Qdrant with deterministic IDs, content-hash change detection, and a failed-scrape safety guard.",
+    "CONTROL: Expose the pipeline via authenticated FastAPI endpoints (/run-etl, /scrape, /ingest, /qdrant/clear, /scraped-data) running as background tasks."
+  ],
+  "rag_steps": [
+    "Receive the question via an n8n webhook (POST { message }).",
+    "Embed the query (HuggingFace Inference) and retrieve top chunks from Qdrant, sorted by confidence.",
+    "Relevance Judge (LLM) returns strict JSON { is_relevant, confidence_score, reasoning }.",
+    "Route on relevance: synthesize an answer from chunks if relevant (confidence > 0.75), otherwise trigger web fallback.",
+    "Web fallback: rewrite the query with BTU context, search via Tavily (advanced depth), answer from live results.",
+    "Return the answer through the webhook and log the full interaction to PostgreSQL.",
+    "Schedule a weekly ETL refresh (cron -> POST /run-etl); catch failures with a dedicated n8n error workflow."
+  ],
+  "api_endpoints": [
+    {
+      "method": "POST",
+      "path": "/run-etl",
+      "purpose": "Full cycle: wipe, scrape, ingest (background)."
+    },
+    {
+      "method": "POST",
+      "path": "/scrape",
+      "purpose": "Scrape only, resuming existing files."
+    },
+    {
+      "method": "POST",
+      "path": "/ingest",
+      "purpose": "Ingest only over on-disk scraped data."
+    },
+    {
+      "method": "POST",
+      "path": "/qdrant/clear",
+      "purpose": "Drop and recreate the Qdrant collection."
+    },
+    {
+      "method": "DELETE",
+      "path": "/scraped-data",
+      "purpose": "Delete every scraped file on disk."
+    }
+  ],
+  "workflows": [
+    {
+      "name": "Self-Correcting RAG",
+      "file": "n8n-pipelines/n8n-self-correcting-rag.json",
+      "purpose": "Main retrieve -> judge -> route -> answer/web-fallback graph."
+    },
+    {
+      "name": "BTU Scraper Scheduler",
+      "file": "n8n-pipelines/btu-scraper.json",
+      "purpose": "Weekly cron (Mon 9 AM) that triggers the ETL API."
+    },
+    {
+      "name": "Error Workflow",
+      "file": "n8n-pipelines/n8n-self-correcting-rag-error-workflow.json",
+      "purpose": "Catches failures and logs them to PostgreSQL."
+    }
+  ],
+  "future_work": [
+    "Eval harness with a golden dataset for regression testing prompt changes.",
+    "Next.js chat frontend consuming the webhook.",
+    "Semantic versioning and instant rollback for n8n workflows."
+  ]
+}

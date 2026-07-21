@@ -1,0 +1,50 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 9 * * 1"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [0, 0],
+      "id": "a9bbb20b-7aaf-4ccc-8549-ee0221cf498d",
+      "name": "Runs Every Monday"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://fsr-ai-rag-production.up.railway.app/run-etl",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [208, 0],
+      "id": "5ee139fd-147d-4aa9-94ac-8358ee2e3a72",
+      "name": "Scrape and Ingest"
+    }
+  ],
+  "connections": {
+    "Runs Every Monday": {
+      "main": [
+        [
+          {
+            "node": "Scrape and Ingest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "8076c1c0714b0f3e5774bd9585494e4f8ddfac6d1e4bf5cd8ff30f3f7be925d5"
+  }
+}
