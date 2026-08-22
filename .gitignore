@@ -3,3 +3,4 @@ venv
 .DS_Store
 __pycache__
 scraped_data
+structured_data

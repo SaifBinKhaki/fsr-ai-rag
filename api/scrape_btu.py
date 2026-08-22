@@ -18,12 +18,19 @@ from crawl4ai.markdown_generation_strategy import DefaultMarkdownGenerator
 from crawl4ai.content_filter_strategy import PruningContentFilter
 import logging
 
+from btu_parser import extract_veranstid, parse_event_page, parse_module_page
+
 # Configure the logging format and level
 logger = logging.getLogger(__name__)
 
 # Configuration
 INPUT_FILE = "btu_subject_links.txt"
 OUTPUT_DIR = "scraped_data"
+
+# Where scrape_structured() writes. Kept separate from OUTPUT_DIR so the
+# markdown corpus that feeds Qdrant and the structured corpus can be refreshed
+# independently — neither run can clobber the other.
+STRUCTURED_OUTPUT_DIR = "structured_data"
 
 # Number of concurrent browser tabs. Each open Chromium tab costs ~50-120MB, so
 # on a 1GB Railway box this is the single biggest memory lever. Default 3 keeps
@@ -96,6 +103,31 @@ def _build_proxy_rotation() -> RoundRobinProxyStrategy | None:
     return RoundRobinProxyStrategy(proxies)
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(STRUCTURED_OUTPUT_DIR, exist_ok=True)
+
+
+def _clear_json_dir(directory: str) -> int:
+    """Delete every .json file in `directory`, returning how many were removed."""
+    if not os.path.isdir(directory):
+        return 0
+
+    removed = 0
+    for entry in os.scandir(directory):
+        if entry.is_file() and entry.name.endswith(".json"):
+            os.remove(entry.path)
+            removed += 1
+    return removed
+
+
+def clear_structured_data() -> int:
+    """Delete previously written structured JSON so the next run starts fresh.
+
+    Only touches STRUCTURED_OUTPUT_DIR — the markdown corpus behind Qdrant is
+    left alone, so wiping structured output can never cost you the vector store.
+    """
+    removed = _clear_json_dir(STRUCTURED_OUTPUT_DIR)
+    logger.info(f"🧹 Cleared {removed} previously structured files for a fresh crawl.")
+    return removed
 
 
 def clear_scraped_data() -> int:
@@ -140,6 +172,29 @@ def load_and_clean_urls(filepath: str) -> list[str]:
         f"📄 Loaded {len(urls)} links from file ({len(unique_urls)} unique URLs after deduplication)."
     )
     return unique_urls
+
+
+# Every entry in btu_subject_links.txt is a plain module URL, and the module
+# number is already unique across all of them — so the structured corpus can use
+# it directly instead of a hash nobody can reproduce by hand.
+MODULE_URL_RE = re.compile(r"^https?://(?:www\.)?b-tu\.de/modul/(\d+)/?$")
+
+
+def structured_filename(url: str) -> str:
+    """Filename for a module's structured JSON: `modul_<number>.json`.
+
+    Deliberately *not* url_to_safe_filename(): that prefixes an md5 slice, so
+    finding module 13846 means grepping the directory instead of just opening
+    `structured_data/modul_13846.json`. Module numbers are unique across the
+    whole link list, so the hash buys nothing here.
+
+    Any URL that isn't the standard module shape falls back to the hashed name,
+    which keeps this safe if the link list ever grows other kinds of pages.
+    """
+    match = MODULE_URL_RE.match(url.strip())
+    if match:
+        return f"modul_{match.group(1)}.json"
+    return url_to_safe_filename(url)
 
 
 def url_to_safe_filename(url: str) -> str:
@@ -218,6 +273,70 @@ async def _scrape_nested_event_pages(
                 f"    ⚠️ Nested failed: {result.url} | Error: {result.error_message}"
             )
     return nested_map
+
+
+def _build_browser_config() -> BrowserConfig:
+    """Browser settings shared by the markdown and structured crawls.
+
+    text_mode + light_mode strip images, GPU and other heavyweight browser
+    features we don't need — a big memory/bandwidth cut. The extra_args matter
+    inside containers: the default /dev/shm is tiny (64MB) so
+    --disable-dev-shm-usage forces Chromium to use /tmp instead of crashing, and
+    --disable-gpu / --no-sandbox trim more resident memory.
+    """
+    proxy_config = _build_proxy_config()
+    if proxy_config:
+        logger.info(f"🌐 Routing through gateway proxy: {SCRAPE_PROXY}")
+
+    return BrowserConfig(
+        headless=True,
+        verbose=False,
+        text_mode=True,
+        light_mode=True,
+        user_agent=USER_AGENT,
+        proxy_config=proxy_config,
+        extra_args=[
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+            "--no-sandbox",
+            "--disable-extensions",
+        ],
+    )
+
+
+def _build_run_config() -> CrawlerRunConfig:
+    """Per-request settings shared by both crawls.
+
+    The markdown generator is harmless for the structured crawl (which reads
+    result.html instead), so one config serves both and the anti-bot tuning below
+    stays defined in exactly one place.
+    """
+    proxy_rotation = _build_proxy_rotation()
+    if proxy_rotation:
+        proxy_count = len([p for p in SCRAPE_PROXY_LIST.split(",") if p.strip()])
+        logger.info(f"🌐 Rotating through {proxy_count} proxies (round-robin).")
+
+    md_generator = DefaultMarkdownGenerator(
+        content_filter=PruningContentFilter(threshold=0.4, threshold_type="fixed")
+    )
+    return CrawlerRunConfig(
+        cache_mode=CacheMode.BYPASS,
+        markdown_generator=md_generator,
+        magic=True,  # Enables stealth & anti-bot evasion
+        # b-tu.de stalls flagged requests instead of refusing them, so cap the
+        # per-page wait and let the retry pass reclaim stragglers rather than
+        # burning 60s each. "domcontentloaded" is enough — the module content is
+        # server-rendered, we don't need to wait for every deferred asset.
+        page_timeout=45000,
+        wait_until="domcontentloaded",
+        # Jitter each tab's start so 3 requests don't arrive as a synchronized
+        # burst — the pattern most anti-bot heuristics key on.
+        mean_delay=1.0,
+        max_range=2.0,
+        semaphore_count=BATCH_SIZE,
+        # Only set when SCRAPE_PROXY_LIST is used; None is ignored otherwise.
+        proxy_rotation_strategy=proxy_rotation,
+    )
 
 
 async def scrape_batch(
@@ -324,54 +443,8 @@ async def scrape():
         return
 
     # 2. Configure Browser & Crawler
-    # text_mode + light_mode strip images, GPU and other heavyweight browser
-    # features we don't need for markdown extraction — big memory/bandwidth cut.
-    # The extra_args matter inside containers: the default /dev/shm is tiny (64MB)
-    # so --disable-dev-shm-usage forces Chromium to use /tmp instead of crashing,
-    # and --disable-gpu / --no-sandbox trim more resident memory.
-    proxy_config = _build_proxy_config()
-    proxy_rotation = _build_proxy_rotation()
-    if proxy_config:
-        logger.info(f"🌐 Routing through gateway proxy: {SCRAPE_PROXY}")
-    elif proxy_rotation:
-        proxy_count = len([p for p in SCRAPE_PROXY_LIST.split(",") if p.strip()])
-        logger.info(f"🌐 Rotating through {proxy_count} proxies (round-robin).")
-
-    browser_cfg = BrowserConfig(
-        headless=True,
-        verbose=False,
-        text_mode=True,
-        light_mode=True,
-        user_agent=USER_AGENT,
-        proxy_config=proxy_config,
-        extra_args=[
-            "--disable-dev-shm-usage",
-            "--disable-gpu",
-            "--no-sandbox",
-            "--disable-extensions",
-        ],
-    )
-    md_generator = DefaultMarkdownGenerator(
-        content_filter=PruningContentFilter(threshold=0.4, threshold_type="fixed")
-    )
-    run_cfg = CrawlerRunConfig(
-        cache_mode=CacheMode.BYPASS,
-        markdown_generator=md_generator,
-        magic=True,  # Enables stealth & anti-bot evasion
-        # b-tu.de stalls flagged requests instead of refusing them, so cap the
-        # per-page wait and let the retry pass reclaim stragglers rather than
-        # burning 60s each. "domcontentloaded" is enough — the module content is
-        # server-rendered, we don't need to wait for every deferred asset.
-        page_timeout=45000,
-        wait_until="domcontentloaded",
-        # Jitter each tab's start so 3 requests don't arrive as a synchronized
-        # burst — the pattern most anti-bot heuristics key on.
-        mean_delay=1.0,
-        max_range=2.0,
-        semaphore_count=BATCH_SIZE,
-        # Only set when SCRAPE_PROXY_LIST is used; None is ignored otherwise.
-        proxy_rotation_strategy=proxy_rotation,
-    )
+    browser_cfg = _build_browser_config()
+    run_cfg = _build_run_config()
 
     # 3. Execute in Batches
     logger.info(f"🚀 Starting parallel crawl with batch size = {BATCH_SIZE}...")
@@ -431,4 +504,274 @@ async def scrape():
     elapsed = round(asyncio.get_event_loop().time() - start_time, 2)
     logger.info(
         f"\n🏁 Crawl finished in {elapsed} seconds! Successfully scraped {total_scraped} new pages."
+    )
+
+
+# --- STRUCTURED JSON CRAWL ---
+#
+# Same crawl mechanics as scrape() above (batching, proxies, retries), but each
+# page's raw HTML is parsed into typed fields instead of markdown, and every
+# module is written with its timetable sub-pages nested inside it.
+
+
+def _event_key(url: str) -> str:
+    """Stable identity for an event sub-page.
+
+    Keyed on the `veranstid` rather than the full URL because qisserver3 rewrites
+    session/tracking params on redirect: matching the returned URL against the
+    requested one string-for-string silently loses pages that were fetched fine.
+    """
+    return extract_veranstid(url) or url
+
+
+async def _fetch_event_pages(
+    crawler: AsyncWebCrawler,
+    urls: list[str],
+    run_cfg: CrawlerRunConfig,
+    event_cache: dict[str, dict],
+) -> None:
+    """Fetch and parse event sub-pages, filling `event_cache` in place.
+
+    The cache is run-level, so a course event linked from twenty modules is
+    fetched once for the whole crawl rather than once per batch. Failures are
+    cached too — after MAX_RETRIES a page is treated as unavailable so a dead
+    link can't be re-attempted by every module that references it.
+    """
+    pending = [u for u in urls if _event_key(u) not in event_cache]
+    if not pending:
+        return
+
+    logger.info(f"  🔗 Fetching {len(pending)} new event sub-page(s)...")
+
+    for attempt in range(MAX_RETRIES + 1):
+        if not pending:
+            break
+        if attempt:
+            # qisserver3 stalls under load exactly like the module pages do, so
+            # give a failed sub-page the same spaced-out second chance.
+            await asyncio.sleep(5 * attempt)
+            logger.info(
+                f"  🔁 Event retry {attempt}/{MAX_RETRIES} for {len(pending)} sub-page(s)..."
+            )
+
+        results = await crawler.arun_many(urls=pending, config=run_cfg)
+
+        still_failing: list[str] = []
+        returned: set[str] = set()
+        for result in results:
+            key = _event_key(result.url)
+            returned.add(key)
+            if not result.success:
+                still_failing.append(result.url)
+                continue
+            parsed = parse_event_page(result.html, result.url)
+            parsed["url"] = result.url
+            parsed["status_code"] = result.status_code
+            parsed["fetched"] = True
+            parsed["fetch_error"] = None
+            event_cache[key] = parsed
+
+        # A URL that produced no result at all must still be retried, otherwise
+        # it would silently vanish from this pass.
+        still_failing.extend(u for u in pending if _event_key(u) not in returned)
+        pending = [u for u in still_failing if _event_key(u) not in event_cache]
+
+    # Whatever is left never came back; record it so the module that links to it
+    # reports an honest failure instead of an empty section.
+    for url in pending:
+        event_cache[_event_key(url)] = {
+            "url": url,
+            "veranstid": extract_veranstid(url),
+            "fetched": False,
+            "fetch_error": f"Failed after {MAX_RETRIES} retries.",
+            "status_code": None,
+            "parsed": False,
+        }
+    if pending:
+        logger.warning(f"  ⚠️ {len(pending)} event sub-page(s) unreachable this run.")
+
+
+def _build_module_payload(result, parsed: dict, event_cache: dict[str, dict]) -> dict:
+    """Assemble one module's structured record, sub-pages included.
+
+    Everything the two page types carry ends up under a single `module` key, so a
+    consumer never has to join two files to see a course's schedule.
+    """
+    filename = structured_filename(result.url)
+
+    events = []
+    for link in parsed["event_links"]:
+        event = dict(event_cache.get(_event_key(link["url"]), {}))
+        # How the parent module labelled this event ("430912 Vorlesung ... 2 SWS")
+        # is context the sub-page itself doesn't repeat.
+        event["listed_as"] = link["title"]
+        event.setdefault("url", link["url"])
+        event.setdefault("veranstid", link["veranstid"])
+        event.setdefault("fetched", False)
+        event.setdefault("fetch_error", "Sub-page was never fetched.")
+        events.append(event)
+
+    fields = dict(parsed["fields"])
+    unmapped = parsed["unmapped_fields"]
+
+    return {
+        "doc_id": filename.replace(".json", ""),
+        "source": {
+            "url": result.url,
+            "status_code": result.status_code,
+            "scraped_at": datetime.now(timezone.utc).isoformat(),
+            "page_title": parsed["page_title"],
+            "heading": parsed["heading"],
+            # Which label set the page used; the site publishes modules in either
+            # German or English and both map onto the same field names.
+            "language": parsed["language"],
+            "parsed": parsed["parsed"],
+            "parse_error": parsed["parse_error"],
+        },
+        "module": fields,
+        # Non-empty only if b-tu.de adds a row we have no mapping for, which
+        # keeps a layout change visible instead of silently dropping data.
+        "unmapped_fields": unmapped,
+        "events": events,
+        "event_summary": {
+            "linked": len(parsed["event_links"]),
+            "fetched": sum(1 for e in events if e.get("fetched")),
+            "failed": sum(1 for e in events if not e.get("fetched")),
+        },
+    }
+
+
+async def _scrape_structured_batch(
+    crawler: AsyncWebCrawler,
+    batch_urls: list[str],
+    run_cfg: CrawlerRunConfig,
+    event_cache: dict[str, dict],
+):
+    """Crawl a batch of module pages, follow their events, write one file each.
+
+    Returns (success_count, failed_urls) so the caller can retry pages that timed
+    out or were blocked, mirroring scrape_batch().
+    """
+    results = await crawler.arun_many(urls=batch_urls, config=run_cfg)
+
+    pages = []
+    failed_urls: list[str] = []
+    event_urls: dict[str, None] = {}
+    for result in results:
+        if not result.success:
+            logger.info(f"  ⚠️ Failed: {result.url} | Error: {result.error_message}")
+            failed_urls.append(result.url)
+            continue
+        parsed = parse_module_page(result.html, result.url)
+        pages.append((result, parsed))
+        for link in parsed["event_links"]:
+            event_urls.setdefault(link["url"], None)
+
+    await _fetch_event_pages(crawler, list(event_urls), run_cfg, event_cache)
+
+    success_count = 0
+    for result, parsed in pages:
+        payload = _build_module_payload(result, parsed, event_cache)
+        file_path = os.path.join(STRUCTURED_OUTPUT_DIR, structured_filename(result.url))
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, indent=2, ensure_ascii=False)
+        success_count += 1
+
+    return success_count, failed_urls
+
+
+async def scrape_structured():
+    """Crawl every module page into structured JSON, sub-pages nested inside.
+
+    Writes one file per module to STRUCTURED_OUTPUT_DIR. Like scrape(), it
+    resumes: URLs whose file already exists are skipped, so a crash partway
+    through a ~4,800-page crawl doesn't cost you the pages already done. Call
+    clear_structured_data() first for a guaranteed-fresh full crawl.
+    """
+    all_urls = load_and_clean_urls(INPUT_FILE)
+
+    # 1. Checkpoint / Resume: skip modules already written this cycle.
+    existing_files = set(os.listdir(STRUCTURED_OUTPUT_DIR))
+    urls_to_scrape = [
+        url for url in all_urls if structured_filename(url) not in existing_files
+    ]
+
+    skipped_count = len(all_urls) - len(urls_to_scrape)
+    if skipped_count > 0:
+        logger.info(
+            f"⏩ Resuming job: Skipped {skipped_count} already structured pages. "
+            f"{len(urls_to_scrape)} remaining."
+        )
+
+    if not urls_to_scrape:
+        logger.info("🎉 All pages have already been converted to structured JSON!")
+        return
+
+    browser_cfg = _build_browser_config()
+    run_cfg = _build_run_config()
+
+    logger.info(f"🚀 Starting structured crawl with batch size = {BATCH_SIZE}...")
+    start_time = asyncio.get_event_loop().time()
+    total_scraped = 0
+
+    # Shared across the whole run so each event sub-page is fetched exactly once,
+    # even when several modules link to the same course.
+    event_cache: dict[str, dict] = {}
+    failed_urls: list[str] = []
+
+    async with AsyncWebCrawler(config=browser_cfg) as crawler:
+        for i in range(0, len(urls_to_scrape), BATCH_SIZE):
+            batch = urls_to_scrape[i : i + BATCH_SIZE]
+            batch_num = (i // BATCH_SIZE) + 1
+            total_batches = (len(urls_to_scrape) + BATCH_SIZE - 1) // BATCH_SIZE
+
+            logger.info(
+                f"\n📦 Structuring Batch {batch_num}/{total_batches} ({len(batch)} URLs)..."
+            )
+            successes, batch_failed = await _scrape_structured_batch(
+                crawler, batch, run_cfg, event_cache
+            )
+            total_scraped += successes
+            failed_urls.extend(batch_failed)
+            logger.info(
+                f"✅ Batch {batch_num} complete. Saved {successes}/{len(batch)} modules."
+            )
+
+            if batch_num < total_batches:
+                await asyncio.sleep(2)
+
+        # Retry pass for module pages, same rationale as scrape(): anti-bot
+        # stalls are intermittent, so a quieter retry often succeeds.
+        for attempt in range(1, MAX_RETRIES + 1):
+            if not failed_urls:
+                break
+
+            backoff = 5 * attempt
+            logger.info(
+                f"\n🔁 Retry {attempt}/{MAX_RETRIES}: re-attempting "
+                f"{len(failed_urls)} failed URL(s) after a {backoff}s cooldown..."
+            )
+            await asyncio.sleep(backoff)
+
+            retry_queue, failed_urls = failed_urls, []
+            for i in range(0, len(retry_queue), BATCH_SIZE):
+                batch = retry_queue[i : i + BATCH_SIZE]
+                successes, batch_failed = await _scrape_structured_batch(
+                    crawler, batch, run_cfg, event_cache
+                )
+                total_scraped += successes
+                failed_urls.extend(batch_failed)
+                await asyncio.sleep(2)
+
+    if failed_urls:
+        logger.warning(
+            f"⚠️ {len(failed_urls)} URL(s) still failed after {MAX_RETRIES} "
+            f"retries and were skipped this run (they'll be retried next crawl)."
+        )
+
+    events_ok = sum(1 for e in event_cache.values() if e.get("fetched"))
+    elapsed = round(asyncio.get_event_loop().time() - start_time, 2)
+    logger.info(
+        f"\n🏁 Structured crawl finished in {elapsed} seconds! "
+        f"Wrote {total_scraped} modules and {events_ok}/{len(event_cache)} event sub-pages."
     )

@@ -1,0 +1,273 @@
+{
+  "metadata": {
+    "source": "https://www.b-tu.de",
+    "faculty_urls": [
+      "https://www.b-tu.de/fakultaet1/fakultaet/institute-fachgebiete",
+      "https://www.b-tu.de/fakultaet2/fakultaet/institute-fachgebiete",
+      "https://www.b-tu.de/fakultaet3/fakultaet/institute-fachgebiete",
+      "https://www.b-tu.de/fakultaet4/fakultaet/institute-fachgebiete",
+      "https://www.b-tu.de/fakultaet5/fakultaet/institute-fachgebiete",
+      "https://www.b-tu.de/fakultaet6/fakultaet/institute-fachgebiete"
+    ],
+    "scrape_started_at": "2026-08-20T07:36:12.494501+00:00",
+    "scrape_finished_at": "2026-08-20T07:37:39.815412+00:00",
+    "faculties": 6,
+    "institutes": 38,
+    "chairs": 357,
+    "chairs_with_team_menu": 214,
+    "chairs_crawled": 234,
+    "chairs_without_link": 111,
+    "chairs_hosted_externally": 10,
+    "chairs_fetch_failed": 2,
+    "chairs_with_head_named": 226,
+    "chairs_with_head_contactable": 163,
+    "people": 2401,
+    "people_with_email": 1056,
+    "people_with_image": 780,
+    "people_with_career": 252,
+    "people_with_office_hours": 133,
+    "pages_requested": 1716,
+    "pages_from_cache": 363,
+    "pages_failed": 1
+  },
+  "unattached_sections": [
+    {
+      "chair": "Kognitive Materialanalytik",
+      "chair_url": "https://www.b-tu.de/fg-kognitive-materialanalytik",
+      "kind": "career",
+      "source_url": "https://www.b-tu.de/fg-kognitive-materialanalytik/team/ehemalige-studentische-beschaeftigte/bsc-maximilian-gast",
+      "text": "2023 bis 2025: studentische Hilfskraft\n2024 – 2025: Berufspraktikum „ Generierung synthetischer Trainingsdaten zum Trainieren von bildbasierter Objekterkennung in industriellen Prozessen “\n2023: Bachelorarbeit „ Datensammlung zur bildbasierten Objekterkennung von mechanischen Bauteilen “\nStudent im Masterstudiengang „ Künstliche Intelligenz Technologie “ an der Brandenburgischen Technischen Universität Cottbus-Senftenberg"
+    },
+    {
+      "chair": "Technische Informatik",
+      "chair_url": "https://www.b-tu.de/fg-technische-informatik",
+      "kind": "career",
+      "source_url": "https://www.b-tu.de/fg-technische-informatik/team/professor",
+      "text": "Vertretungsprofessur an der BTU Cottbus, Fachbereich Technische Informatik, seit November 2023\nHabilitand an der FAU Erlangen-Nürnberg, Lehrstuhl für Multimediakommunikation und Signalverarbeitung, April 2019-Oktober 2023\nPostDoc an der École de technologie supérieure (ÉTS), Montréal, Canada, August 2018-März 2019\nDoktorand an der FAU Erlangen-Nürnberg, Lehrstuhl für Multimediakommunikation und Signalverarbeitung, August 2012-July 2018\nDiplomstudiengang \"Elektrotechnik und Informationstechnik\", RWTH Aachen, Oktober 2005-July 2012"
+    },
+    {
+      "chair": "Wirtschaftsmathematik",
+      "chair_url": "https://www.b-tu.de/fg-wirtschaftsmathematik",
+      "kind": "office_hours",
+      "source_url": "https://www.b-tu.de/fg-wirtschaftsmathematik/team/mitarbeiter/sprechzeiten",
+      "text": "Wir sind alle per E-Mail erreichbar. Bitte sprechen Sie uns auf diesem Weg an.\nSekretariat, Annette Fischer\nRaum 3.04, Hauptgebäude Dienstag bis Donnerstag, 12:00 bis 15:00 Uhr"
+    },
+    {
+      "chair": "Medientechnik",
+      "chair_url": "https://www.b-tu.de/fg-medientechnik",
+      "kind": "career",
+      "source_url": "https://www.b-tu.de/fg-medientechnik/team/mitarbeiter",
+      "text": "Akademischer Mitarbeiter, Doktorand: BTU Cottbus-Senftenberg\nseit 01/2021: Lehre, Projekt- und Antragskoordination\n06/2018 - 12/2020: Betraut mit dem Projekt COCKPIT 4.0 .\n\nAkademischer Mitarbeiter, Doktorand: BTU Cottbus-Senftenberg Beschäftigt im Projekt: VIT-V .\n\nAkademischer Mitarbeiter: BTU Cottbus-Senftenberg Beschäftigt im Verbundprojekt: Insektenlaser - Neue Verfahren der optischen Früherkennung und der schadstofffreien Bekämpfung vorratsschädlicher Insekten mit Laserstrahlen"
+    },
+    {
+      "chair": "Technische Informatik",
+      "chair_url": "https://www.b-tu.de/fg-technische-informatik/team/ehemalige-professoren",
+      "kind": "career",
+      "source_url": "https://www.b-tu.de/fg-technische-informatik/team/professor",
+      "text": "Vertretungsprofessur an der BTU Cottbus, Fachbereich Technische Informatik, seit November 2023\nHabilitand an der FAU Erlangen-Nürnberg, Lehrstuhl für Multimediakommunikation und Signalverarbeitung, April 2019-Oktober 2023\nPostDoc an der École de technologie supérieure (ÉTS), Montréal, Canada, August 2018-März 2019\nDoktorand an der FAU Erlangen-Nürnberg, Lehrstuhl für Multimediakommunikation und Signalverarbeitung, August 2012-July 2018\nDiplomstudiengang \"Elektrotechnik und Informationstechnik\", RWTH Aachen, Oktober 2005-July 2012"
+    },
+    {
+      "chair": "Atmosphärische Prozesse",
+      "chair_url": "https://www.b-tu.de/fg-meteorologie",
+      "kind": "career",
+      "source_url": "https://www.b-tu.de/fg-meteorologie/team/prof-dr-katja-trachte",
+      "text": "seit 10/2019 Professorin für Atmosphärische Prozesse an der Brandenburgischen-Technischen Universität Cottbus-Senftenberg\n10/2016 - 03/2018 Vertretungsprofessur Klimatologie, Ruhr Universität Bochum\n03/2011 - 09/2019 Wissenschaftliche Mitarbeiterin, Philipps-Universität Marburg, Laboratory for Climatology and Remote Sensing\n02/2011 Promotion, Philipps-Universität Marburg (\"summa cum laude\"), \"Cold air drainage flows and their relation to the formation of nocturnal convective clouds at the eastern Andes of South Ecuador\"\n2006 Diplom, Philipps-Universität Marburg \"Sensitivitätsstudie zur raumzeitlichen Niederschlagssimulation über dem Alpenraum mit dem Mesoskalenmodell ARPS"
+    },
+    {
+      "chair": "VWL, insbesondere Umweltökonomie",
+      "chair_url": "https://www.b-tu.de/fg-umweltoekonomie",
+      "kind": "career",
+      "source_url": "https://www.b-tu.de/fg-umweltoekonomie/team/teammitglieder/somaiyeh-nezhadkheirollah",
+      "text": "Ausbildung\nsince 2022: PhD student im Programm \"Environmental and Resource Management\" an der BTU Cottbus-Senftenberg\nM.Sc. in Environmental Science and Global Change, Ca’Foscari Universität Venedig, Italien\nB.Sc. in Civil Engineering, Urmia State Universität, Urmia, Iran\nBeruflicher Werdegang\nPhysics Lecturer\nStatistics Researcher, Iran\nCivil Engeneering Expert, (Abran), Iran\nCivil Engeneering Expert, Iran"
+    },
+    {
+      "chair": "VWL, insbesondere Umweltökonomie",
+      "chair_url": "https://www.b-tu.de/fg-umweltoekonomie",
+      "kind": "career",
+      "source_url": "https://www.b-tu.de/fg-umweltoekonomie/team/teammitglieder/mai-nusir",
+      "text": "seit 2022 PhD Studentin am Lehrstuhl für VWL, insbes. Umweltökonomie, BTU Cottbus-Senftenberg\n2019-2021 Master of Science, Regional and Environmental Economics, Corvinus University, Budapest.\n2014-2019 Bachelor of Science, Civil Engineering, Jordan University of Science and Technology."
+    },
+    {
+      "chair": "VWL, insbesondere Umweltökonomie",
+      "chair_url": "https://www.b-tu.de/fg-umweltoekonomie",
+      "kind": "career",
+      "source_url": "https://www.b-tu.de/fg-umweltoekonomie/team/teammitglieder/caterina-de-petris",
+      "text": "Education\nFrom 10/2019 to 10/2021 M.Sc. in Agricultural Economics Humboldt University of Berlin, Germany\nFrom 10/2016 to 08/2019 B.Sc. in Environmental and Resource Management Brandenburg University of Technology Cottbus-Senftenberg, Germany\nFrom 08/2018 to 01/2019 Exchange Semester Budapest University of Technology and Economics (Budapesti Műszaki és Gazdaságtudományi Egyetem), Budapest, Hungary\nInternship\nFrom 04/2021 to 07/2021 Helmholtz-Centre for Environmental Research GmbH – UFZ, Leipzig, Germany Department of Ecological Modelling Project title: Effects of bounded rationality in landowner behaviour on the dynamics of agglomeration payment schemes Supervisor: Prof. Dr. Dr. Martin Drechsler\nRelevant work experience\nFrom 10/2021 to 12/2021 International Food Policy Research Institute (IFPRI), Washington D.C., USA Position: External collaborator Task: Data Analysis Consultancy Project: Joint project by CGIAR Research Program on Water, Land and Ecosystems (WLE) and CGIAR Research Program Policies, Institutions, and Markets (PIM)\nFrom 12/2020 to 03/2021 Position: Student assistant Employer: Brandenburg University of Technology Cottbus-Senftenberg Chair of Economics, in particular Environmental Economics, Cottbus, Germany\nVolunteering\nFrom 01/2021 to 12/2021 Participation in an intervention for improving community groundwater governance in Ethiopia Feed the Future Innovation Laboratory for Small Scale Irrigation (ILSSI) and International Food Policy Research Institute (IFPRI), Washington D.C., USA"
+    },
+    {
+      "chair": "VWL, insbesondere Umweltökonomie",
+      "chair_url": "https://www.b-tu.de/fg-umweltoekonomie",
+      "kind": "career",
+      "source_url": "https://www.b-tu.de/fg-umweltoekonomie/team/teammitglieder/misganaw-badasa-wake",
+      "text": "April 2021 – Oktober 2022 Masters Abschluss in International and Development Economics, HTW Berlin.\nApril 2022 – September 2022 Studentische Hilfskranft, HTW Berlin. Projekt Name: Erasmus+ Projekt “Rethinking pedagogical approaches and digital tools to teach circular economy”\nOktober 2019 – Januar 2020 Teilzeit Dozent für Economics an der Addis Ababa Universität, Addis Abeba, Äthiopien.\nApril 2019 – Januar 2021 Analyst an der Ethiopian Agricultural Transformation Agency, Addis Abeba, Äthiopien.\nOktober 2017 – März 2019 Graduate Assistant an der Haramaya Universität, Haramaya, Äthiopien.\nSeptember 2014 – July 2017 Bachelor of Arts Abschluss in Economics, Addis Ababa Universität, Addis Abeba, Äthiopien."
+    },
+    {
+      "chair": "VWL, insbesondere Umweltökonomie",
+      "chair_url": "https://www.b-tu.de/fg-umweltoekonomie",
+      "kind": "career",
+      "source_url": "https://www.b-tu.de/fg-umweltoekonomie/team/teammitglieder/johanna-witt",
+      "text": "2012-2016: Bachelor of Science, Molecular Ecosystem Sciences, Georg-August-Universität, Göttingen\n2016-2019: Master of Sciecne, Environmental and Resource Management, BTU\n2017-2018: Auslandssemester, Südliche Föderale Universität, Rostow am Don\n2018-2019: Instructor Erdforscher Mitmachlabors gUG (MINT-Angebote an Berliner Schulen)"
+    },
+    {
+      "chair": "VWL, insbesondere Umweltökonomie",
+      "chair_url": "https://www.b-tu.de/fg-umweltoekonomie",
+      "kind": "office_hours",
+      "source_url": "https://www.b-tu.de/fg-umweltoekonomie/team/kontakt",
+      "text": "Nächste Sprechstunde mit Prof. Wätzold: Auf Anfrage. Bitte kontaktieren Sie Regina Kirsche ( regina.kirsche(at)b-tu.de )."
+    },
+    {
+      "chair": "VWL, insbesondere Umweltökonomie",
+      "chair_url": "https://www.b-tu.de/fg-umweltoekonomie",
+      "kind": "office_hours",
+      "source_url": "https://www.b-tu.de/fg-umweltoekonomie/team/teammitglieder/somaiyeh-nezhadkheirollah",
+      "text": "Nächste Sprechstunde mit Prof. Wätzold: Auf Anfrage. Bitte kontaktieren Sie Regina Kirsche ( regina.kirsche(at)b-tu.de )."
+    },
+    {
+      "chair": "VWL, insbesondere Umweltökonomie",
+      "chair_url": "https://www.b-tu.de/fg-umweltoekonomie",
+      "kind": "office_hours",
+      "source_url": "https://www.b-tu.de/fg-umweltoekonomie/team/teammitglieder/mai-nusir",
+      "text": "Nächste Sprechstunde mit Prof. Wätzold: Auf Anfrage. Bitte kontaktieren Sie Regina Kirsche ( regina.kirsche(at)b-tu.de )."
+    },
+    {
+      "chair": "VWL, insbesondere Umweltökonomie",
+      "chair_url": "https://www.b-tu.de/fg-umweltoekonomie",
+      "kind": "office_hours",
+      "source_url": "https://www.b-tu.de/fg-umweltoekonomie/team/teammitglieder/caterina-de-petris",
+      "text": "nach Vereinbarung depetris(at)b-tu.de Raum: LG10 / 533 k\n\nNächste Sprechstunde mit Prof. Wätzold: Auf Anfrage. Bitte kontaktieren Sie Regina Kirsche ( regina.kirsche(at)b-tu.de )."
+    },
+    {
+      "chair": "VWL, insbesondere Umweltökonomie",
+      "chair_url": "https://www.b-tu.de/fg-umweltoekonomie",
+      "kind": "office_hours",
+      "source_url": "https://www.b-tu.de/fg-umweltoekonomie/team/teammitglieder/misganaw-badasa-wake",
+      "text": "Nächste Sprechstunde mit Prof. Wätzold: Auf Anfrage. Bitte kontaktieren Sie Regina Kirsche ( regina.kirsche(at)b-tu.de )."
+    },
+    {
+      "chair": "VWL, insbesondere Umweltökonomie",
+      "chair_url": "https://www.b-tu.de/fg-umweltoekonomie",
+      "kind": "office_hours",
+      "source_url": "https://www.b-tu.de/fg-umweltoekonomie/team/teammitglieder/johanna-witt",
+      "text": "Nächste Sprechstunde mit Prof. Wätzold: Auf Anfrage. Bitte kontaktieren Sie Regina Kirsche ( regina.kirsche(at)b-tu.de )."
+    },
+    {
+      "chair": "Bauliches Recycling",
+      "chair_url": "https://www.b-tu.de/ag-baurecycling",
+      "kind": "office_hours",
+      "source_url": "https://www.b-tu.de/ag-baurecycling/team/sprechzeiten",
+      "text": "Termine nur nach Vereinbarung. Bitte wenden Sie sich hierzu an:\nProf. Dr.-Ing. habil. Angelika Mettke T +49 (0) 355 69 2270 F +49 (0) 355 69 3171 mettke(at)b-tu.de"
+    },
+    {
+      "chair": "KI-gestützte Automatisierungstechnik",
+      "chair_url": "https://www.b-tu.de/fg-automatisierungstechnik",
+      "kind": "office_hours",
+      "source_url": "https://www.b-tu.de/fg-automatisierungstechnik/team/kontakt",
+      "text": "Sprechzeiten nach Vereinbarung!"
+    },
+    {
+      "chair": "Grundschulpädagogik mit dem Schwerpunkt Inklusion",
+      "chair_url": "https://www.b-tu.de/fg-lehramt-grundschulpaedagogik",
+      "kind": "office_hours",
+      "source_url": "https://www.b-tu.de/fg-lehramt-grundschulpaedagogik",
+      "text": "Mittwoch: 10:00 Uhr - 11:00 Uhr (nach Anmeldung per E-Mail)"
+    },
+    {
+      "chair": "Mathematik und Didaktik der Mathematik in der Primarstufe",
+      "chair_url": "https://www.b-tu.de/fg-lehramt-mathematik",
+      "kind": "office_hours",
+      "source_url": "https://www.b-tu.de/fg-lehramt-mathematik",
+      "text": "Dienstag : 14:00 Uhr - 15:00 Uhr (nach Anmeldung per E-Mail )"
+    },
+    {
+      "chair": "Bildungswissenschaften und Berufspädagogik in Gesundheitsberufen",
+      "chair_url": "https://www.b-tu.de/fg-bildungswissenschaften-gesundheit",
+      "kind": "career",
+      "source_url": "https://www.b-tu.de/fg-bildungswissenschaften-gesundheit/team/prof-dr-disc-pol-heidrun-herzberg",
+      "text": "seit Sept. 2017 : Professorin für „Bildungswissenschaften und Berufspädagogik in Gesundheitsberufen“ an der Brandenburgischen Technischen Universität Cottbus-Senftenberg 2009 - 2017: Professorin für „Pädagogik und qualitative Sozialforschung in Gesundheit und Pflege“ an der Hochschule Neubrandenburg 2002 - 2008 : Juniorprofessorin für den Bereich „Bildungsbiographieforschung und lebensbegleitendes Lernen“ am Institut für Erziehungswissenschaften der Humboldt-Universität zu Berlin 2002 : Promotion mit einer Arbeit zum Thema „Biographie und Lernhabitus“ an der Georg-August-Universität Göttingen 1997 - 2000: Wissenschaftliche Mitarbeiterin an der Universität Bremen, Fachbereich Erziehungs- und Bildungswissenschaften 1990 - 1996 : Studium der Erziehungswissenschaften, Schwerpunkt Weiterbildung, und Musik an der Universität Bremen"
+    },
+    {
+      "chair": "Allgemeine Technikwissenschaft",
+      "chair_url": "https://www.b-tu.de/fg-technikwissenschaft",
+      "kind": "office_hours",
+      "source_url": "https://www.b-tu.de/fg-technikwissenschaft/team/wissenschaftliches-personal-1",
+      "text": "Nur nach Vereinbarung\n\nNur nach Vereinbarung\n\nNur nach Vereinbarung\n\nNur nach Vereinbarung"
+    },
+    {
+      "chair": "Allgemeine Technikwissenschaft",
+      "chair_url": "https://www.b-tu.de/fg-technikwissenschaft",
+      "kind": "office_hours",
+      "source_url": "https://www.b-tu.de/fg-technikwissenschaft/team/promovierende-1",
+      "text": "Nur nach Vereinbarung\n\nNur nach Vereinbarung\n\nNur nach Vereinbarung\n\nNur nach Vereinbarung\n\nNur nach Vereinbarung\n\nNur nach Vereinbarung\n\nNur nach Vereinbarung\n\nNur nach Vereinbarung\n\nNur nach Vereinbarung\n\nNur nach Vereinbarung"
+    },
+    {
+      "chair": "Allgemeine Technikwissenschaft",
+      "chair_url": "https://www.b-tu.de/fg-technikwissenschaft",
+      "kind": "office_hours",
+      "source_url": "https://www.b-tu.de/fg-technikwissenschaft/team/kooperationen",
+      "text": "Nur nach Vereinbarung\n\nNur nach Vereinbarung"
+    },
+    {
+      "chair": "Allgemeine Technikwissenschaft",
+      "chair_url": "https://www.b-tu.de/fg-technikwissenschaft",
+      "kind": "office_hours",
+      "source_url": "https://www.b-tu.de/fg-technikwissenschaft/team/ehemalige-1/allgemeine-technikwissenschaft",
+      "text": "Bitte vereinbaren Sie einen Termin.\n\nBitte vereinbaren Sie einen Termin.\n\nNur nach Vereinbarung"
+    },
+    {
+      "chair": "ABWL und Besondere des Rechnungswesens und Controlling",
+      "chair_url": "https://www.b-tu.de/fg-controlling",
+      "kind": "office_hours",
+      "source_url": "https://www.b-tu.de/fg-controlling/team/adresse",
+      "text": "Di 10.00-11.00 Uhr Mi 14.00-15.00 Uhr Do 14.00-15.00 Uhr"
+    },
+    {
+      "chair": "ABWL, insbesondere empirische Unternehmensforschung und Transformation",
+      "chair_url": "https://www.b-tu.de/fg-unternehmensforschung",
+      "kind": "career",
+      "source_url": "https://www.b-tu.de/fg-unternehmensforschung/teammitglieder/wissenschaftliche-mitarbeiter/andreas-salmen",
+      "text": "Seit 06/2021: Wissenschaftlicher Mitarbeiter am Lehrstuhl für Empirische Unternehmensforschung und Transformation an der BTU Cottbus-Senftenberg\n04/2025 - 06/2025: Visiting Ph.D. student in the Department of Strategy and Innovation at Copenhagen Business School\n08/2018 - 05/2021: Studentische Hilfskraft am Lehrstuhl für Marketing an der TU Berlin"
+    },
+    {
+      "chair": "ABWL, insbesondere empirische Unternehmensforschung und Transformation",
+      "chair_url": "https://www.b-tu.de/fg-unternehmensforschung",
+      "kind": "office_hours",
+      "source_url": "https://www.b-tu.de/fg-unternehmensforschung/teammitglieder/wissenschaftliche-mitarbeiter/andreas-salmen",
+      "text": "Bitte vereinbaren Sie einen Termin per E-Mail oder Telefon."
+    },
+    {
+      "chair": "ABWL, insbesondere Planung, Innovation und Gründung",
+      "chair_url": "https://www.b-tu.de/fg-planung",
+      "kind": "office_hours",
+      "source_url": "https://www.b-tu.de/fg-planung/team/mitarbeiterinnen",
+      "text": "In der vorlesungsfreien Zeit finden die Sprechzeiten der MitarbeiterInnen des Lehrstuhls nur nach vorheriger Vereinbarung statt."
+    },
+    {
+      "chair": "VWL - Makroökonomik",
+      "chair_url": "https://www.b-tu.de/fg-vwl-makro",
+      "kind": "career",
+      "source_url": "https://www.b-tu.de/fg-vwl-makro/team/mitarbeiter-innen/honorarprofessor",
+      "text": "Berufliche Laufbahn\n1986-1990 Wissenschaftlicher Mitarbeiter am Fachbereich Wirtschaftswissenschaften an der Freien Universität Berlin 1990-1996 Geschäftsführer des Institutes für ökologische Wirtschaftsforschung (IÖW) GmbH, Berlin seit 1997 ordentlicher Professor für Volkswirtschaftslehre und Umweltökonomie an der FH Lausitz 2007-2010 Vizepräsident für Forschung und Technologietransfer der FH Lausitz seit 2011 Fakultätsratvorsitzender Fakultät 1 2016-2021 zentraler Umweltbeauftragter der BTU Cottbus-Senftenberg\nStudium\n1979-1985 Studium der Wirtschaftswissenschaften an der Gesamthochschule - Universität Duisburg 1985 Diplom als Ökonom an der Universität Duisburg 1993 Promotion zum Dr. oec. an der Freien Universität Berlin bei Prof. Dr. M. Küttner, Zweitgutachter Prof. Dr. W. Winterhager, mit der Dissertation \"Der methodologische Status der Rationalitätsannahme in der Ökonomie\" mit der Note \"magna cum laude\"\n\n1986-1990 Wissenschaftlicher Mitarbeiter am Fachbereich Wirtschaftswissenschaften an der Freien Universität Berlin 1990-1996 Geschäftsführer des Institutes für ökologische Wirtschaftsforschung (IÖW) GmbH, Berlin seit 1997 ordentlicher Professor für Volkswirtschaftslehre und Umweltökonomie an der FH Lausitz 2007-2010 Vizepräsident für Forschung und Technologietransfer der FH Lausitz seit 2011 Fakultätsratvorsitzender Fakultät 1 2016-2021 zentraler Umweltbeauftragter der BTU Cottbus-Senftenberg"
+    },
+    {
+      "chair": "VWL - Mikroökonomik",
+      "chair_url": "https://www.b-tu.de/fg-vwl-mikro",
+      "kind": "office_hours",
+      "source_url": "https://www.b-tu.de/fg-vwl-mikro/team/teammitglieder/julia-aicher",
+      "text": "Termine nach Vereinbarung (bitte per E-Mail)"
+    },
+    {
+      "chair": "Institut für Bauingenieurwesen",
+      "chair_url": "https://www.b-tu.de/institut-bauingenieurwesen/ueber-uns/gastprofessur",
+      "kind": "career",
+      "source_url": "https://www.b-tu.de/institut-bauingenieurwesen/ueber-uns/gastprofessur",
+      "text": "Aktuell\nseit 10/2025 Gastprofessor für ‚Computer-gestützte Methoden im Bauingenieurwesen‘ an der Fakultät 6, BTU Cottbus-Senftenberg\nseit 04/2018 Professor für ‚Numerische Mechanik‘ an der Hochschule Düsseldorf\nAkademischer Werdegang\n2015 – 2018 Associate Professor School of Engineering, University of Glasgow, UK\n2012 – 2015 Assistant Professor Aerospace Engineering, Delft University of Technology, NL\n2007 – 2012 Akademischer Rat Bauingenieurwesen, Technische Universität München\n2006 – 2007 Gastprofessor Bauingenieurwesen, Technische Universität Berlin\n1999 – 2006 Wissenschaftlicher Mitarbeiter Bauingenieurwesen, Technische Universität Berlin\nAusbildung\n2014 Habilitation im Fachgebiet ‚Computational Engineering‘ Technische Universität München\n2005 Promotion zum Dr.-Ing. im Bauingenieurwesen Technische Universität Berlin\n1999 Dipl.-Ing. Bauingenieurwesen Technische Universität Berlin\n\n2015 – 2018 Associate Professor School of Engineering, University of Glasgow, UK\n2012 – 2015 Assistant Professor Aerospace Engineering, Delft University of Technology, NL\n2007 – 2012 Akademischer Rat Bauingenieurwesen, Technische Universität München\n2006 – 2007 Gastprofessor Bauingenieurwesen, Technische Universität Berlin\n1999 – 2006 Wissenschaftlicher Mitarbeiter Bauingenieurwesen, Technische Universität Berlin"
+    },
+    {
+      "chair": "Infrastruktur- und Mobilitätsplanung",
+      "chair_url": "https://www.b-tu.de/fg-infrastruktur-mobilitaetsplanung",
+      "kind": "career",
+      "source_url": "https://www.b-tu.de/fg-infrastruktur-mobilitaetsplanung/team/ehemalige/ehemalige-fachgebietsleitung",
+      "text": "Prof. Dr.-Ing. Matthias Koziol war von 1997 bis 2023 Professor und Leiter des Fachgebietes Stadttechnik an der Brandenburgischen Technischen Universität Cottbus-Senftenberg sowie von 2007 bis 2020 Vizepräsident der Universität."
+    }
+  ]
+}

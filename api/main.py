@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import secrets
@@ -7,7 +8,18 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, BackgroundTasks, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from scrape_btu import scrape, clear_scraped_data
+from scrape_btu import (
+    scrape,
+    scrape_structured,
+    clear_scraped_data,
+    clear_structured_data,
+)
+from scrape_professors import (
+    PROFESSORS_META_FILE,
+    PROFESSORS_OUTPUT_FILE,
+    clear_professors_data,
+    scrape_professors,
+)
 from ingest_to_qdrant import ingest, clear_qdrant_collection
 
 # Load .env so API_BEARER_TOKEN (and the Qdrant vars) are available locally too.
@@ -89,6 +101,119 @@ async def scrape_only(background_tasks: BackgroundTasks):
     return {"status": "Scrape started"}
 
 
+@app.post("/scrape-json")
+async def scrape_json(background_tasks: BackgroundTasks, fresh: bool = False):
+    """Crawl every module page into structured JSON, event sub-pages nested in.
+
+    Writes one file per module to `structured_data/`, separate from the markdown
+    corpus that feeds Qdrant — this route touches neither `scraped_data/` nor the
+    vector store.
+
+    `fresh=false` (default) resumes: modules already written are skipped, so a
+    crawl interrupted partway through ~4,800 pages picks up where it left off.
+    `fresh=true` wipes `structured_data/` first to force a full re-crawl.
+    """
+    removed = clear_structured_data() if fresh else 0
+    background_tasks.add_task(_run_scrape_structured)
+    return {
+        "status": "Structured JSON scrape started",
+        "fresh": fresh,
+        "cleared": removed,
+    }
+
+
+@app.delete("/structured-data")
+async def delete_structured_files():
+    """Delete every structured JSON file on disk (blocking, fast)."""
+    removed = clear_structured_data()
+    return {"status": "Structured files deleted", "removed": removed}
+
+
+@app.post("/scrape-professors")
+async def scrape_professors_route(background_tasks: BackgroundTasks, fresh: bool = False):
+    """Crawl every faculty -> chair -> team page into one professors JSON.
+
+    Walks the six faculty overviews, follows each chair to its "Team" menu, and
+    reads every designation page under it — professors, academic staff,
+    secretariat, student assistants and alumni alike. Each person carries their
+    contact block, portrait, CV and office hours where the chair publishes them,
+    and everyone is de-duplicated across the pages that list them.
+
+    `structured-professors/data.json` is written as one flat dictionary — person
+    key -> that person's details, every value a scalar, faculty/institute/chair
+    carried as plain fields. Run counters land in `metadata.json` beside it.
+
+    Independent of both other corpora: this route touches neither `scraped_data/`
+    nor `structured_data/` nor the vector store.
+
+    The crawl always runs in full (roughly 1,700 pages, a couple of minutes) and
+    overwrites the export at the end, so `fresh=true` only matters if you want the
+    stale file gone while the new one is still being built.
+    """
+    removed = clear_professors_data() if fresh else 0
+    background_tasks.add_task(_run_scrape_professors)
+    return {
+        "status": "Professor scrape started",
+        "fresh": fresh,
+        "cleared": removed,
+        "output_file": PROFESSORS_OUTPUT_FILE,
+    }
+
+
+@app.get("/professors")
+async def get_professors(faculty: int | None = None, q: str | None = None):
+    """Return the scraped professor data, optionally filtered.
+
+    The stored file is one flat dictionary keyed by person, and that is what this
+    returns under `people`. `faculty=3` narrows it to that faculty and `q=hauer`
+    matches name, email or chair; with neither, the whole roster comes back.
+    """
+    if not os.path.isfile(PROFESSORS_OUTPUT_FILE):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No professor data yet. POST /scrape-professors first.",
+        )
+
+    with open(PROFESSORS_OUTPUT_FILE, encoding="utf-8") as handle:
+        roster = json.load(handle)
+
+    if faculty is not None:
+        needle = f"fakultät {faculty}".casefold()
+        roster = {
+            key: person
+            for key, person in roster.items()
+            if needle in (person["faculty"] or "").casefold()
+        }
+    if q:
+        needle = q.casefold()
+        roster = {
+            key: person
+            for key, person in roster.items()
+            if needle in person["name"].casefold()
+            or needle in (person["email"] or "").casefold()
+            or needle in (person["chair"] or "").casefold()
+        }
+
+    metadata = None
+    if os.path.isfile(PROFESSORS_META_FILE):
+        with open(PROFESSORS_META_FILE, encoding="utf-8") as handle:
+            metadata = json.load(handle)["metadata"]
+
+    return {
+        "metadata": metadata,
+        "filters": {"faculty": faculty, "q": q},
+        "count": len(roster),
+        "people": roster,
+    }
+
+
+@app.delete("/professors")
+async def delete_professors_data():
+    """Delete the exported professors JSON (blocking, fast)."""
+    removed = clear_professors_data()
+    return {"status": "Professor data deleted", "removed": removed}
+
+
 @app.post("/ingest")
 async def ingest_only(background_tasks: BackgroundTasks):
     """Run only the Qdrant ingestion over whatever is currently in scraped_data."""
@@ -115,6 +240,23 @@ def _run_scrape():
 
     asyncio.run(scrape())
     logger.info("Scrape-only run complete.")
+
+
+def _run_scrape_structured():
+    import asyncio
+
+    asyncio.run(scrape_structured())
+    logger.info("Structured JSON scrape complete.")
+
+
+def _run_scrape_professors():
+    import asyncio
+
+    meta = asyncio.run(scrape_professors())
+    logger.info(
+        f"Professor scrape complete: {meta['people']} people across "
+        f"{meta['chairs']} chairs."
+    )
 
 
 def _run_ingest():
