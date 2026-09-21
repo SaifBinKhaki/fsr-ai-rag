@@ -14,6 +14,12 @@ from scrape_btu import (
     clear_scraped_data,
     clear_structured_data,
 )
+from scrape_module_links import (
+    LINKS_FILE,
+    ModuleLinksError,
+    read_module_links,
+    rebuild_module_links,
+)
 from scrape_professors import (
     PROFESSORS_META_FILE,
     PROFESSORS_OUTPUT_FILE,
@@ -94,9 +100,71 @@ async def run_etl(background_tasks: BackgroundTasks):
     return {"status": "Pipeline started"}
 
 
+@app.post("/scrape-module-links")
+async def scrape_module_links_route(dry_run: bool = False, min_links: int | None = None):
+    """Rebuild `btu_subject_links.txt` from BTU's live module catalogue.
+
+    Scrapes the qisserver3 module search, asked for in one page via
+    `P_anzahl=9999`, and rewrites the link file to match it exactly. The file is
+    **replaced**, not merged, so a module BTU has retired leaves the list here
+    too; the file always reflects the real catalogue.
+
+    This is the *currently offered* catalogue (~3,200 modules). The old
+    `b-tu.de/modul` index this replaced also listed modules marked "no longer
+    offered", which is why the list got shorter when the source changed.
+
+    This is the input every other crawler reads, so it is worth running before a
+    full `/run-etl` or `/scrape` to pick up the semester's new modules.
+
+    One page fetch, so it runs inline rather than in the background and the
+    response carries the diff: `added` and `removed` list the actual URLs.
+
+    `dry_run=true` reports that diff without touching the file. `min_links`
+    overrides the safety floor that rejects an implausibly short scrape — set it
+    to 0 to write whatever was parsed.
+    """
+    try:
+        report = await rebuild_module_links(dry_run=dry_run, min_links=min_links)
+    except ModuleLinksError as exc:
+        # The catalogue was unreachable or came back without its table. The old
+        # link file is still intact, so this is a failed refresh, not data loss.
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)
+        )
+
+    logger.info(
+        f"Module links rebuilt: {report['total']} total "
+        f"(+{report['added_count']}, -{report['removed_count']}), "
+        f"written={report['written']}"
+    )
+    return {
+        "status": "Dry run complete, file unchanged"
+        if dry_run
+        else "Module links rebuilt",
+        **report,
+    }
+
+
+@app.get("/module-links")
+async def get_module_links():
+    """Return the module URLs currently in `btu_subject_links.txt`."""
+    if not os.path.isfile(LINKS_FILE):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No link file yet. POST /scrape-module-links first.",
+        )
+
+    links = read_module_links(LINKS_FILE)
+    return {"file": LINKS_FILE, "count": len(links), "links": links}
+
+
 @app.post("/scrape")
 async def scrape_only(background_tasks: BackgroundTasks):
-    """Run only the scraper (no clear, no ingest). Existing files are resumed."""
+    """Run only the scraper (no clear, no ingest). Existing files are resumed.
+
+    Crawls every module in `btu_subject_links.txt` into the markdown corpus that
+    feeds Qdrant, following each module's timetable events one level deep.
+    """
     background_tasks.add_task(_run_scrape)
     return {"status": "Scrape started"}
 
@@ -110,8 +178,8 @@ async def scrape_json(background_tasks: BackgroundTasks, fresh: bool = False):
     vector store.
 
     `fresh=false` (default) resumes: modules already written are skipped, so a
-    crawl interrupted partway through ~4,800 pages picks up where it left off.
-    `fresh=true` wipes `structured_data/` first to force a full re-crawl.
+    crawl interrupted partway through picks up where it left off. `fresh=true`
+    wipes `structured_data/` first to force a full re-crawl.
     """
     removed = clear_structured_data() if fresh else 0
     background_tasks.add_task(_run_scrape_structured)

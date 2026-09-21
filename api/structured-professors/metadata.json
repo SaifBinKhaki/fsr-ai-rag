@@ -9,23 +9,23 @@
       "https://www.b-tu.de/fakultaet5/fakultaet/institute-fachgebiete",
       "https://www.b-tu.de/fakultaet6/fakultaet/institute-fachgebiete"
     ],
-    "scrape_started_at": "2026-08-20T07:36:12.494501+00:00",
-    "scrape_finished_at": "2026-08-20T07:37:39.815412+00:00",
+    "scrape_started_at": "2026-09-21T00:22:58.592474+00:00",
+    "scrape_finished_at": "2026-09-21T00:24:39.689100+00:00",
     "faculties": 6,
     "institutes": 38,
-    "chairs": 357,
+    "chairs": 358,
     "chairs_with_team_menu": 214,
     "chairs_crawled": 234,
-    "chairs_without_link": 111,
+    "chairs_without_link": 112,
     "chairs_hosted_externally": 10,
     "chairs_fetch_failed": 2,
     "chairs_with_head_named": 226,
     "chairs_with_head_contactable": 163,
-    "people": 2401,
-    "people_with_email": 1056,
-    "people_with_image": 780,
-    "people_with_career": 252,
-    "people_with_office_hours": 133,
+    "people": 2398,
+    "people_with_email": 1052,
+    "people_with_image": 776,
+    "people_with_career": 254,
+    "people_with_office_hours": 134,
     "pages_requested": 1716,
     "pages_from_cache": 363,
     "pages_failed": 1
@@ -37,13 +37,6 @@
       "kind": "career",
       "source_url": "https://www.b-tu.de/fg-kognitive-materialanalytik/team/ehemalige-studentische-beschaeftigte/bsc-maximilian-gast",
       "text": "2023 bis 2025: studentische Hilfskraft\n2024 – 2025: Berufspraktikum „ Generierung synthetischer Trainingsdaten zum Trainieren von bildbasierter Objekterkennung in industriellen Prozessen “\n2023: Bachelorarbeit „ Datensammlung zur bildbasierten Objekterkennung von mechanischen Bauteilen “\nStudent im Masterstudiengang „ Künstliche Intelligenz Technologie “ an der Brandenburgischen Technischen Universität Cottbus-Senftenberg"
-    },
-    {
-      "chair": "Technische Informatik",
-      "chair_url": "https://www.b-tu.de/fg-technische-informatik",
-      "kind": "career",
-      "source_url": "https://www.b-tu.de/fg-technische-informatik/team/professor",
-      "text": "Vertretungsprofessur an der BTU Cottbus, Fachbereich Technische Informatik, seit November 2023\nHabilitand an der FAU Erlangen-Nürnberg, Lehrstuhl für Multimediakommunikation und Signalverarbeitung, April 2019-Oktober 2023\nPostDoc an der École de technologie supérieure (ÉTS), Montréal, Canada, August 2018-März 2019\nDoktorand an der FAU Erlangen-Nürnberg, Lehrstuhl für Multimediakommunikation und Signalverarbeitung, August 2012-July 2018\nDiplomstudiengang \"Elektrotechnik und Informationstechnik\", RWTH Aachen, Oktober 2005-July 2012"
     },
     {
       "chair": "Wirtschaftsmathematik",
@@ -58,13 +51,6 @@
       "kind": "career",
       "source_url": "https://www.b-tu.de/fg-medientechnik/team/mitarbeiter",
       "text": "Akademischer Mitarbeiter, Doktorand: BTU Cottbus-Senftenberg\nseit 01/2021: Lehre, Projekt- und Antragskoordination\n06/2018 - 12/2020: Betraut mit dem Projekt COCKPIT 4.0 .\n\nAkademischer Mitarbeiter, Doktorand: BTU Cottbus-Senftenberg Beschäftigt im Projekt: VIT-V .\n\nAkademischer Mitarbeiter: BTU Cottbus-Senftenberg Beschäftigt im Verbundprojekt: Insektenlaser - Neue Verfahren der optischen Früherkennung und der schadstofffreien Bekämpfung vorratsschädlicher Insekten mit Laserstrahlen"
-    },
-    {
-      "chair": "Technische Informatik",
-      "chair_url": "https://www.b-tu.de/fg-technische-informatik/team/ehemalige-professoren",
-      "kind": "career",
-      "source_url": "https://www.b-tu.de/fg-technische-informatik/team/professor",
-      "text": "Vertretungsprofessur an der BTU Cottbus, Fachbereich Technische Informatik, seit November 2023\nHabilitand an der FAU Erlangen-Nürnberg, Lehrstuhl für Multimediakommunikation und Signalverarbeitung, April 2019-Oktober 2023\nPostDoc an der École de technologie supérieure (ÉTS), Montréal, Canada, August 2018-März 2019\nDoktorand an der FAU Erlangen-Nürnberg, Lehrstuhl für Multimediakommunikation und Signalverarbeitung, August 2012-July 2018\nDiplomstudiengang \"Elektrotechnik und Informationstechnik\", RWTH Aachen, Oktober 2005-July 2012"
     },
     {
       "chair": "Atmosphärische Prozesse",
@@ -240,13 +226,6 @@
       "kind": "office_hours",
       "source_url": "https://www.b-tu.de/fg-planung/team/mitarbeiterinnen",
       "text": "In der vorlesungsfreien Zeit finden die Sprechzeiten der MitarbeiterInnen des Lehrstuhls nur nach vorheriger Vereinbarung statt."
-    },
-    {
-      "chair": "VWL - Makroökonomik",
-      "chair_url": "https://www.b-tu.de/fg-vwl-makro",
-      "kind": "career",
-      "source_url": "https://www.b-tu.de/fg-vwl-makro/team/mitarbeiter-innen/honorarprofessor",
-      "text": "Berufliche Laufbahn\n1986-1990 Wissenschaftlicher Mitarbeiter am Fachbereich Wirtschaftswissenschaften an der Freien Universität Berlin 1990-1996 Geschäftsführer des Institutes für ökologische Wirtschaftsforschung (IÖW) GmbH, Berlin seit 1997 ordentlicher Professor für Volkswirtschaftslehre und Umweltökonomie an der FH Lausitz 2007-2010 Vizepräsident für Forschung und Technologietransfer der FH Lausitz seit 2011 Fakultätsratvorsitzender Fakultät 1 2016-2021 zentraler Umweltbeauftragter der BTU Cottbus-Senftenberg\nStudium\n1979-1985 Studium der Wirtschaftswissenschaften an der Gesamthochschule - Universität Duisburg 1985 Diplom als Ökonom an der Universität Duisburg 1993 Promotion zum Dr. oec. an der Freien Universität Berlin bei Prof. Dr. M. Küttner, Zweitgutachter Prof. Dr. W. Winterhager, mit der Dissertation \"Der methodologische Status der Rationalitätsannahme in der Ökonomie\" mit der Note \"magna cum laude\"\n\n1986-1990 Wissenschaftlicher Mitarbeiter am Fachbereich Wirtschaftswissenschaften an der Freien Universität Berlin 1990-1996 Geschäftsführer des Institutes für ökologische Wirtschaftsforschung (IÖW) GmbH, Berlin seit 1997 ordentlicher Professor für Volkswirtschaftslehre und Umweltökonomie an der FH Lausitz 2007-2010 Vizepräsident für Forschung und Technologietransfer der FH Lausitz seit 2011 Fakultätsratvorsitzender Fakultät 1 2016-2021 zentraler Umweltbeauftragter der BTU Cottbus-Senftenberg"
     },
     {
       "chair": "VWL - Mikroökonomik",

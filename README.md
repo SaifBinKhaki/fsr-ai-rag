@@ -51,20 +51,24 @@ The design principle: **the ETL side owns the knowledge, the orchestration side 
 
 Everything here lives in `api/` and is exposed through a small FastAPI app. The whole thing is designed to run on a **1 GB Railway box**, which forced some genuinely useful engineering decisions.
 
-### EXTRACT — Crawling 4,800 pages without getting blocked
+### EXTRACT — Crawling the catalog without getting blocked
 
-The source is BTU's module catalog: a list of ~4,786 URLs. The scraper turns each one into a clean markdown-in-JSON file.
+The source is BTU's `qisserver3` module catalog: ~3,200 currently-offered modules, pulled down as one search result and rebuilt by `POST /scrape-module-links` — it replaces the list rather than merging into it, so modules the university retires drop out and new ones appear on their own. The scraper turns each URL into a clean markdown-in-JSON file.
 
-`b-tu.de` sits behind an anti-bot layer that _stalls_ datacenter traffic instead of refusing it, so a naive crawler just hangs. Here's how I got around it:
+**No browser.** These pages are server-rendered with no JavaScript, so the crawl is plain `httpx` rather than headless Chromium. A request costs kilobytes instead of ~100 MB a tab, which on a 1 GB box turns concurrency from something to ration into something to tune.
 
-- **Realistic User-Agent** — the default headless Chromium UA screams "HeadlessChrome", so I swap in a real desktop UA. Cheapest anti-bot win there is.
-- **Batched concurrency** — 3 tabs at a time by default. Each Chromium tab costs ~50-120 MB, so on a 1 GB box this is the single biggest memory lever.
-- **Jittered starts** — requests are staggered with a random delay so 3 tabs don't hit the server as one synchronized burst (the exact pattern WAFs flag).
-- **A separate retry pass** — anything that times out gets re-attempted later with a growing back-off, because a page that stalls under load often loads fine on a quieter, spaced-out retry.
-- **Optional residential proxy support** — fully opt-in via env vars, for when UA + retry tuning isn't enough (single gateway _or_ a round-robin list).
-- **Resume/checkpoint logic** — already-scraped URLs are skipped on restart, so a crashed crawl picks up exactly where it left off.
+`b-tu.de` sits behind an anti-bot layer that _stalls_ datacenter traffic instead of refusing it, and `qisserver3` adds a sharper failure mode of its own. Here's how I got around both:
 
-There's also a **nested crawl**: every module page links to its live timetable events on BTU's `qisserver3` system — lecturer, room, and schedule detail that isn't on the overview page. The scraper follows those links one level deep, de-duplicates them across the whole batch (a shared event is fetched once), and folds their content into the parent module's markdown.
+- **One HTTP session per worker** — the one that actually mattered. `qisserver3` keys navigation state to the session cookie, so parallel requests sharing a cookie jar overwrite each other's state and the server answers **HTTP 200 with a page that has no module table**. Measured over 24 modules: a single shared client parsed 12/24 at 8-way concurrency and 7/24 at 2-way; one client _per worker_ parsed 24/24 at every width I tried.
+- **Parsing _is_ the health check** — a 200 that doesn't parse counts as a failure, gets retried on a fresh session, and is never written. Without this the corpus quietly fills with contentless files that look perfectly fine if you're only counting them. I know because the first full run wrote 2,806 of them.
+- **Realistic User-Agent** — a default client UA gets flagged instantly. Cheapest anti-bot win there is.
+- **Jittered pacing + backoff retries** — requests are staggered by a random delay so they don't land as one synchronized burst, and anything that fails is re-attempted with a growing cooldown on a cleared cookie jar.
+- **Optional residential proxy support** — fully opt-in via env vars, for when UA + retry tuning isn't enough.
+- **Resume/checkpoint logic** — already-scraped modules are skipped on restart, so a crashed crawl picks up exactly where it left off. A module that failed is simply not written, so the next run retries it.
+
+There's also a **nested crawl**: every module page links to its live timetable events — lecturer, room, and schedule detail that isn't on the overview page. The scraper follows those links one level deep, de-duplicates them across the whole run (an event shared by twenty modules is fetched once), and folds their content into the parent module's markdown.
+
+The markdown itself is **rendered from the parsed structure**, not converted from the page's HTML. `qisserver3` wraps its content in navigation chrome and embeds each event's QR code as a base64 `data:` URI — all of which an HTML-to-markdown pass drags into the corpus. Rendering from typed fields also makes the output deterministic, so the ingester's content hash changes only when the university actually changed something.
 
 > **Result:** Crawl finished in ~1,421 seconds. Successfully scraped **4,783 pages.**
 
@@ -73,7 +77,7 @@ There's also a **nested crawl**: every module page links to its live timetable e
 1. **Chunk** — `RecursiveCharacterTextSplitter` at 1,000 chars with 200-char overlap, so context bleeds across boundaries and answers don't get cut in half.
 2. **Embed** — `BAAI/bge-small-en-v1.5`, a 384-dimensional open-source model that runs **locally**. Not `text-embedding-3` at 1,536 dims and a per-token bill — this is zero-cost inference on CPU.
 
-The memory trick: `torch` and `sentence-transformers` (~300-500 MB) are imported **inside** the function, not at the top of the file. That way the model only loads during ingestion — _after_ the scraper's Chromium is gone — so the two memory peaks never overlap and the container never gets OOM-killed.
+The memory trick: `torch` and `sentence-transformers` (~300-500 MB) are imported **inside** the function, not at the top of the file. That way the model only loads during ingestion, after the crawl has finished, so the two memory peaks never overlap and the container never gets OOM-killed.
 
 > **Result:** 35,601 chunks generated from the corpus.
 
@@ -92,13 +96,15 @@ The ingestion isn't "delete everything and re-upload." It's a **reconciling sync
 
 The pipeline is wrapped behind bearer-token-authenticated endpoints. Every route is gated at the app level (fails _closed_ — if no token is configured the API is unusable rather than silently open, and token comparison uses `compare_digest` to avoid timing attacks).
 
-| Method   | Endpoint        | Does                                              |
-| -------- | --------------- | ------------------------------------------------- |
-| `POST`   | `/run-etl`      | Full cycle: wipe -> scrape -> ingest (background) |
-| `POST`   | `/scrape`       | Scrape only (resumes existing files)              |
-| `POST`   | `/ingest`       | Ingest only, over whatever's on disk              |
-| `POST`   | `/qdrant/clear` | Drop & recreate the collection                    |
-| `DELETE` | `/scraped-data` | Delete every scraped file on disk                 |
+| Method   | Endpoint               | Does                                               |
+| -------- | ---------------------- | -------------------------------------------------- |
+| `POST`   | `/run-etl`             | Full cycle: wipe -> scrape -> ingest (background)  |
+| `POST`   | `/scrape-module-links` | Rebuild the module URL list from BTU's catalog     |
+| `GET`    | `/module-links`        | Read the module URL list the scrapers run on       |
+| `POST`   | `/scrape`              | Scrape only (resumes existing files)               |
+| `POST`   | `/ingest`              | Ingest only, over whatever's on disk               |
+| `POST`   | `/qdrant/clear`        | Drop & recreate the collection                     |
+| `DELETE` | `/scraped-data`        | Delete every scraped file on disk                  |
 
 Long jobs run as FastAPI **background tasks**, so the HTTP call returns instantly instead of timing out during a 20-minute crawl.
 
